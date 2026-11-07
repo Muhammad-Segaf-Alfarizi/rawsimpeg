@@ -6,7 +6,7 @@ use App\Models\KegiatanModel;
 use App\Models\PenugasanModel;
 use App\Models\PegawaiModel;
 
-require_once ROOTPATH . 'include/penugasan_helper.php';
+require_once APPPATH . 'Helpers/penugasan_helper.php';
 
 class Penugasan extends BaseController
 {
