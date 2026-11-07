@@ -1,0 +1,10 @@
+node_modules
+
+/vendor/
+/vendor_ci4/
+/writable/
+/ci4_temp/
+/builds/
+.env
+*.zip
+*.rar
