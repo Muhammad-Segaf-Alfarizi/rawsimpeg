@@ -79,6 +79,46 @@ function hitungHariPenuh(?string $mulai, ?string $selesai): int {
     return max($diff, 1);
 }
 
+/**
+ * Format rentang tanggal ke Bahasa Indonesia (contoh: "22 - 24 Juli 2026" atau "31 Juli - 2 Agustus 2026")
+ */
+function formatRentangTanggalIndo(?string $mulai, ?string $selesai): string {
+    if (!$mulai && !$selesai) return '-';
+    if (!$selesai) $selesai = $mulai;
+    if (!$mulai) $mulai = $selesai;
+
+    $ts1 = strtotime($mulai);
+    $ts2 = strtotime($selesai);
+    if ($ts1 === false || $ts2 === false) {
+        return "{$mulai} s.d. {$selesai}";
+    }
+
+    $bulanIndo = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    ];
+
+    $d1 = (int) date('j', $ts1);
+    $m1 = (int) date('n', $ts1);
+    $y1 = (int) date('Y', $ts1);
+
+    $d2 = (int) date('j', $ts2);
+    $m2 = (int) date('n', $ts2);
+    $y2 = (int) date('Y', $ts2);
+
+    if ($d1 === $d2 && $m1 === $m2 && $y1 === $y2) {
+        return "{$d1} {$bulanIndo[$m1]} {$y1}";
+    }
+    if ($m1 === $m2 && $y1 === $y2) {
+        return "{$d1} - {$d2} {$bulanIndo[$m1]} {$y1}";
+    }
+    if ($y1 === $y2) {
+        return "{$d1} {$bulanIndo[$m1]} - {$d2} {$bulanIndo[$m2]} {$y1}";
+    }
+    return "{$d1} {$bulanIndo[$m1]} {$y1} - {$d2} {$bulanIndo[$m2]} {$y2}";
+}
+
 // ============================================================
 // 3. PEMETAAN WARNA TIM KERJA & KODE KEGIATAN
 // ============================================================

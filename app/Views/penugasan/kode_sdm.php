@@ -183,6 +183,8 @@ $statusBadge = static function (string $st): string {
                                 <span style="font-size:12px;color:var(--text-muted);font-style:italic;">
                                     <?php if (in_array($k['kode_kegiatan'], ['38', '43'], true)): ?>
                                         Seluruh pegawai — gunakan <strong>Kelola SDM → Plot Seluruh Pegawai</strong>.
+                                    <?php elseif ($k['kode_kegiatan'] === '40'): ?>
+                                        Fasilitator: Diana, Nuryulinda · Panitia: Rino, Santi, Nabila (magang).
                                     <?php elseif ($k['kode_kegiatan'] === '41'): ?>
                                         Fasilitator: Anang, Yusuf · Panitia: Ronaldo, Elva (magang, non-pegawai).
                                     <?php else: ?>
@@ -279,11 +281,11 @@ $kegForm = static function (string $p, array $timOpts): string {
     <div class="row">
         <div class="col-md-4 form-group">
             <label class="form-label-dark">Tanggal Mulai</label>
-            <input type="date" name="tanggal_mulai" id="<?= $p ?>Mulai" class="form-control-dark sm">
+            <input type="date" name="tanggal_mulai" id="<?= $p ?>Mulai" class="form-control-dark sm" onchange="autoSyncRentangTeks('<?= $p ?>')">
         </div>
         <div class="col-md-4 form-group">
             <label class="form-label-dark">Tanggal Selesai</label>
-            <input type="date" name="tanggal_selesai" id="<?= $p ?>Selesai" class="form-control-dark sm">
+            <input type="date" name="tanggal_selesai" id="<?= $p ?>Selesai" class="form-control-dark sm" onchange="autoSyncRentangTeks('<?= $p ?>')">
         </div>
         <div class="col-md-4 form-group">
             <label class="form-label-dark">Teks Tanggal (opsional)</label>
@@ -335,7 +337,16 @@ $kegForm = static function (string $p, array $timOpts): string {
                 <h5 class="modal-title"><i class="fas fa-edit" style="color:var(--warning);margin-right:8px;"></i>Edit Kegiatan</h5>
                 <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
-            <div class="modal-body"><?= $kegForm('edit', $timKerjaOptions) ?></div>
+            <div class="modal-body">
+                <?= $kegForm('edit', $timKerjaOptions) ?>
+                <div style="margin-top:12px;padding:10px 12px;border-radius:var(--radius-sm);background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.28);">
+                    <input type="hidden" name="sync_sdm_dates" value="0">
+                    <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-size:12.5px;color:var(--text-primary);font-weight:600;">
+                        <input type="checkbox" name="sync_sdm_dates" id="editSyncSdmDates" value="1" checked style="width:16px;height:16px;accent-color:var(--accent);">
+                        <span>Sinkronkan otomatis Tanggal Mulai, Tanggal Selesai &amp; Jumlah Hari ke seluruh SDM pada kegiatan ini</span>
+                    </label>
+                </div>
+            </div>
             <div class="modal-footer">
                 <button type="submit" class="btn-primary-dark"><i class="fas fa-save"></i> Simpan Perubahan</button>
             </div>
@@ -376,10 +387,10 @@ $kegForm = static function (string $p, array $timOpts): string {
                                 'Kepala' => 'Hendra Apriawan', 'Linda' => 'Nuryulinda', 'Feris' => 'Ferismayanti',
                                 'Bu Wati' => 'Tentrem', 'Cecil' => 'Cecilia', 'Emil' => 'Emilia', 'Wibi' => 'Tri Wibawanto',
                                 'Nurning' => 'Nurningsih', 'Orin' => 'Lilis', 'Echi' => 'Destri', 'Indah' => 'Nur Indah',
-                                'Sohar' => 'Agus Sohar', 'Yatmi' => 'Suyatmi', 'Made' => 'Ni Made', 'Rahman' => 'Ursida',
+                                'Sohar' => 'Agus Sohar', 'Yatmi' => 'Suyatmi', 'Rahman' => 'Ursida',
                                 'Tika' => 'Kartika', 'Pipit' => 'Vidhya', 'Awid' => 'Awid', 'Nisa' => 'Anisa Nurul',
                                 'Ial' => 'Syahrial', 'Rina' => 'Febrina', 'Sasa' => 'Raisha', 'Danur' => 'Bursadanur',
-                                'Fadil' => 'Fadhillah', 'Zul' => 'Zulkarnain', 'Ali' => 'Alie', 'Santi' => 'Susanti', 'Yuli' => 'Yuliana',
+                                'Fadil' => 'Fadhillah', 'Zul' => 'Zulkarnain', 'Ali' => 'Alie', 'Santi' => 'Santi', 'Yuli' => 'Yuliana',
                             ];
                             foreach ($quickAliases as $aliasLabel => $target): ?>
                                 <span class="pg-chip" onclick="pilihDariAlias(<?= esc(json_encode($target), 'attr') ?>)"><?= esc($aliasLabel) ?></span>
@@ -539,6 +550,27 @@ function syncWarnaTim(timVal, targetId) {
     if (TIM_WARNA[timVal]) document.getElementById(targetId).value = TIM_WARNA[timVal];
 }
 
+function autoSyncRentangTeks(prefix) {
+    const m = document.getElementById(prefix + 'Mulai').value;
+    const s = document.getElementById(prefix + 'Selesai').value;
+    if (!m || !s) return;
+    const d1 = new Date(m + 'T00:00:00');
+    const d2 = new Date(s + 'T00:00:00');
+    if (isNaN(d1) || isNaN(d2)) return;
+    const bln = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    let txt = '';
+    if (d1.getTime() === d2.getTime()) {
+        txt = `${d1.getDate()} ${bln[d1.getMonth()]} ${d1.getFullYear()}`;
+    } else if (d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear()) {
+        txt = `${d1.getDate()} - ${d2.getDate()} ${bln[d1.getMonth()]} ${d1.getFullYear()}`;
+    } else if (d1.getFullYear() === d2.getFullYear()) {
+        txt = `${d1.getDate()} ${bln[d1.getMonth()]} - ${d2.getDate()} ${bln[d2.getMonth()]} ${d1.getFullYear()}`;
+    } else {
+        txt = `${d1.getDate()} ${bln[d1.getMonth()]} ${d1.getFullYear()} - ${d2.getDate()} ${bln[d2.getMonth()]} ${d2.getFullYear()}`;
+    }
+    document.getElementById(prefix + 'Rentang').value = txt;
+}
+
 function bukaModalEditKegiatan(k) {
     const set = (id, v) => { document.getElementById(id).value = v ?? ''; };
     set('editId', k.id_kegiatan);
@@ -553,6 +585,9 @@ function bukaModalEditKegiatan(k) {
     set('editKuota', k.kuota_keterangan);
     set('editTempat', k.tempat_lokus);
     set('editCatatan', k.catatan_ket);
+    // Default centang sinkronisasi SDM kecuali untuk kegiatan multi-tahap (Kode 8 & 34)
+    const syncCb = document.getElementById('editSyncSdmDates');
+    if (syncCb) syncCb.checked = !['8', '34'].includes(String(k.kode_kegiatan));
     $('#modalEditKegiatan').modal('show');
 }
 
