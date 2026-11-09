@@ -6,7 +6,7 @@ use App\Models\KegiatanModel;
 use App\Models\PenugasanModel;
 use App\Models\PegawaiModel;
 
-require_once ROOTPATH . 'include/penugasan_helper.php';
+require_once APPPATH . 'Helpers/penugasan_helper.php';
 
 class Penugasan extends BaseController
 {
@@ -138,21 +138,35 @@ class Penugasan extends BaseController
 
     public function update()
     {
-        $idKegiatan  = (int) $this->request->getPost('id_kegiatan');
-        $kode        = trim((string) $this->request->getPost('kode_kegiatan'));
-        $nama        = trim((string) $this->request->getPost('nama_kegiatan'));
-        $timKerja    = trim((string) $this->request->getPost('tim_kerja')) ?: 'Tim Kerja 1 : Peningkatan Kompetensi';
-        $warnaHex    = trim((string) $this->request->getPost('warna_hex')) ?: '#E5B8B7';
-        $kuota       = trim((string) $this->request->getPost('kuota_keterangan'));
-        $tglMulai    = $this->request->getPost('tanggal_mulai') ?: null;
-        $tglSelesai  = $this->request->getPost('tanggal_selesai') ?: null;
-        $rentangTeks = trim((string) $this->request->getPost('rentang_tanggal_teks'));
-        $tempat      = trim((string) $this->request->getPost('tempat_lokus'));
-        $status      = trim((string) $this->request->getPost('status_kegiatan')) ?: 'TERJADWAL';
-        $catatanKet  = trim((string) $this->request->getPost('catatan_ket')) ?: $status;
+        $idKegiatan   = (int) $this->request->getPost('id_kegiatan');
+        $kode         = trim((string) $this->request->getPost('kode_kegiatan'));
+        $nama         = trim((string) $this->request->getPost('nama_kegiatan'));
+        $timKerja     = trim((string) $this->request->getPost('tim_kerja')) ?: 'Tim Kerja 1 : Peningkatan Kompetensi';
+        $warnaHex     = trim((string) $this->request->getPost('warna_hex')) ?: '#E5B8B7';
+        $kuota        = trim((string) $this->request->getPost('kuota_keterangan'));
+        $tglMulai     = $this->request->getPost('tanggal_mulai') ?: null;
+        $tglSelesai   = $this->request->getPost('tanggal_selesai') ?: null;
+        $rentangTeks  = trim((string) $this->request->getPost('rentang_tanggal_teks'));
+        $tempat       = trim((string) $this->request->getPost('tempat_lokus'));
+        $status       = trim((string) $this->request->getPost('status_kegiatan')) ?: 'TERJADWAL';
+        $catatanKet   = trim((string) $this->request->getPost('catatan_ket')) ?: $status;
+        $syncSdmDates = $this->request->getPost('sync_sdm_dates') !== '0';
 
         if (!$idKegiatan || $kode === '' || $nama === '') {
             return redirect()->back()->with('error', 'Data kegiatan tidak lengkap.');
+        }
+
+        $oldKeg = $this->kegiatanModel->find($idKegiatan);
+
+        // Jika tanggal_mulai / tanggal_selesai diubah dan teks rentang masih sama dengan yang lama, perbarui otomatis
+        if ($tglMulai && $tglSelesai) {
+            $datesChanged = !$oldKeg
+                || ($oldKeg['tanggal_mulai'] ?? null) !== $tglMulai
+                || ($oldKeg['tanggal_selesai'] ?? null) !== $tglSelesai;
+
+            if ($rentangTeks === '' || ($datesChanged && $oldKeg && $rentangTeks === trim((string) ($oldKeg['rentang_tanggal_teks'] ?? '')))) {
+                $rentangTeks = formatRentangTanggalIndo($tglMulai, $tglSelesai);
+            }
         }
 
         $this->kegiatanModel->update($idKegiatan, [
@@ -163,13 +177,34 @@ class Penugasan extends BaseController
             'kuota_keterangan'     => $kuota,
             'tanggal_mulai'        => $tglMulai,
             'tanggal_selesai'      => $tglSelesai,
-            'rentang_tanggal_teks' => $rentangTeks ?: ($tglMulai && $tglSelesai ? "{$tglMulai} s.d. {$tglSelesai}" : '-'),
+            'rentang_tanggal_teks' => $rentangTeks ?: ($tglMulai && $tglSelesai ? formatRentangTanggalIndo($tglMulai, $tglSelesai) : '-'),
             'tempat_lokus'         => $tempat,
             'status_kegiatan'      => $status,
             'catatan_ket'          => $catatanKet,
         ]);
 
-        return redirect()->to(base_url('kegiatan'))->with('success', "Kegiatan Kode {$kode} berhasil diperbarui.");
+        // Sinkronkan tanggal mulai, tanggal selesai, dan jumlah hari ke seluruh penugasan SDM pada kegiatan ini
+        $syncedCount = 0;
+        if ($tglMulai && $tglSelesai && $syncSdmDates) {
+            $jumlahHari = hitungHariPenuh($tglMulai, $tglSelesai);
+            $this->penugasanModel
+                ->where('id_kegiatan', $idKegiatan)
+                ->set([
+                    'tanggal_mulai_tugas'   => $tglMulai,
+                    'tanggal_selesai_tugas' => $tglSelesai,
+                    'jumlah_hari'           => $jumlahHari,
+                ])
+                ->update();
+            $syncedCount = $this->penugasanModel->where('id_kegiatan', $idKegiatan)->countAllResults();
+        }
+
+        $msg = "Kegiatan Kode {$kode} berhasil diperbarui.";
+        if ($syncedCount > 0 && $tglMulai && $tglSelesai) {
+            $jmlHr = hitungHariPenuh($tglMulai, $tglSelesai);
+            $msg .= " Tanggal tugas & jumlah hari ({$jmlHr} hari) untuk {$syncedCount} pegawai telah disinkronkan.";
+        }
+
+        return redirect()->to(base_url('kegiatan'))->with('success', $msg);
     }
 
     public function hapus(int $idKegiatan)

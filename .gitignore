@@ -1,10 +1,13 @@
-node_modules
-
+# Dependencies & Build
 /vendor/
-/vendor_ci4/
+/node_modules/
+/builds
+
+# Runtime & Writable
 /writable/
-/ci4_temp/
-/builds/
+
+# Environment & Archives
 .env
 *.zip
 *.rar
+*.log
