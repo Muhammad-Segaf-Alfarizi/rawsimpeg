@@ -33,15 +33,13 @@ class Abk extends BaseController
     {
         $this->checkAccess($nip);
 
-        $rules = [
-            'nama_kegiatan' => 'required',
-            'satuan'        => 'required',
-            'volume'        => 'required|numeric',
-            'norma_waktu'   => 'required|numeric',
-        ];
+        $uraianTugas = trim((string) ($this->request->getPost('uraian_tugas') ?? $this->request->getPost('nama_kegiatan') ?? ''));
+        $satuanHasil = trim((string) ($this->request->getPost('satuan_hasil') ?? $this->request->getPost('satuan') ?? ''));
+        $waktuMenit  = $this->request->getPost('waktu_penyelesaian') ?? $this->request->getPost('norma_waktu');
+        $volumeKerja = $this->request->getPost('volume_kerja') ?? $this->request->getPost('volume');
 
-        if (! $this->validate($rules)) {
-            return redirect()->to('/abk/' . $nip)->with('error', implode(', ', $this->validator->getErrors()));
+        if ($uraianTugas === '' || $satuanHasil === '' || ! is_numeric($waktuMenit) || ! is_numeric($volumeKerja)) {
+            return redirect()->to('/abk/' . $nip)->with('error', 'Uraian tugas pokok, satuan hasil, waktu (menit), dan volume kerja wajib diisi.');
         }
 
         $fileUrl = null;
@@ -58,17 +56,18 @@ class Abk extends BaseController
             }
         }
 
-        $wt = (float) $this->request->getPost('volume') * (float) $this->request->getPost('norma_waktu');
-
         $this->abkModel->save([
-            'nip'                  => $nip,
-            'nama_kegiatan'        => $this->request->getPost('nama_kegiatan'),
-            'satuan'               => $this->request->getPost('satuan'),
-            'volume'               => $this->request->getPost('volume'),
-            'norma_waktu'          => $this->request->getPost('norma_waktu'),
-            'waktu_penyelesaian'   => $wt,
-            'keterangan'           => $this->request->getPost('keterangan') ?? '',
-            'file'                 => $fileUrl,
+            'nip'                => $nip,
+            'uraian_tugas'       => $uraianTugas,
+            'nama_kegiatan'      => $uraianTugas,
+            'satuan_hasil'       => $satuanHasil,
+            'satuan'             => $satuanHasil,
+            'waktu_penyelesaian' => (float) $waktuMenit,
+            'norma_waktu'        => (float) $waktuMenit,
+            'volume_kerja'       => (int) $volumeKerja,
+            'volume'             => (float) $volumeKerja,
+            'keterangan'         => $this->request->getPost('keterangan') ?? '',
+            'file'               => $fileUrl,
         ]);
 
         return redirect()->to('/abk/' . $nip)->with('success', 'Data ABK berhasil ditambahkan.');
@@ -80,6 +79,11 @@ class Abk extends BaseController
 
         $id  = (int) $this->request->getPost('id_abk');
         $row = $this->abkModel->find($id);
+
+        $uraianTugas = trim((string) ($this->request->getPost('uraian_tugas') ?? $this->request->getPost('nama_kegiatan') ?? ''));
+        $satuanHasil = trim((string) ($this->request->getPost('satuan_hasil') ?? $this->request->getPost('satuan') ?? ''));
+        $waktuMenit  = $this->request->getPost('waktu_penyelesaian') ?? $this->request->getPost('norma_waktu');
+        $volumeKerja = $this->request->getPost('volume_kerja') ?? $this->request->getPost('volume');
 
         $fileUrl = $row['file'] ?? null;
         $file    = $this->request->getFile('file');
@@ -97,15 +101,16 @@ class Abk extends BaseController
             }
         }
 
-        $wt = (float) $this->request->getPost('volume') * (float) $this->request->getPost('norma_waktu');
-
         $this->abkModel->update($id, [
-            'nama_kegiatan'      => $this->request->getPost('nama_kegiatan'),
-            'satuan'             => $this->request->getPost('satuan'),
-            'volume'             => $this->request->getPost('volume'),
-            'norma_waktu'        => $this->request->getPost('norma_waktu'),
-            'waktu_penyelesaian' => $wt,
-            'keterangan'         => $this->request->getPost('keterangan') ?? '',
+            'uraian_tugas'       => $uraianTugas,
+            'nama_kegiatan'      => $uraianTugas,
+            'satuan_hasil'       => $satuanHasil,
+            'satuan'             => $satuanHasil,
+            'waktu_penyelesaian' => (float) $waktuMenit,
+            'norma_waktu'        => (float) $waktuMenit,
+            'volume_kerja'       => (int) $volumeKerja,
+            'volume'             => (float) $volumeKerja,
+            'keterangan'         => $this->request->getPost('keterangan') ?? ($row['keterangan'] ?? ''),
             'file'               => $fileUrl,
         ]);
 

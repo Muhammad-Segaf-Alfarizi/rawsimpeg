@@ -10,8 +10,10 @@ class AbkModel extends Model
     protected $primaryKey = 'id_abk';
 
     protected $allowedFields = [
-        'nip', 'nama_kegiatan', 'satuan', 'volume', 'norma_waktu',
-        'waktu_penyelesaian', 'keterangan', 'file',
+        'nip', 'nama_kegiatan', 'uraian_tugas', 'satuan', 'satuan_hasil',
+        'volume', 'volume_kerja', 'norma_waktu', 'waktu_penyelesaian',
+        'uraian_tahapan_kerja', 'kategori_tugas', 'peralatan_kerja',
+        'catatan_norma_waktu', 'dokumen_pendukung', 'keterangan', 'file',
     ];
 
     public function getByNip(string $nip): array
