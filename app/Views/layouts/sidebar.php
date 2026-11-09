@@ -9,7 +9,9 @@ $cur  = service('uri')->getSegments();
 ?>
 <nav id="sidebar">
     <div class="sidebar-brand">
-        <div class="brand-logo"><i class="fas fa-users-cog"></i></div>
+        <div class="brand-logo" style="background:transparent;box-shadow:none;padding:0;">
+            <img src="https://bgtklampung.kemendikdasmen.go.id/themes/template1/img/Tutwuri.png" alt="Logo Tut Wuri Handayani" style="width:40px;height:40px;object-fit:contain;">
+        </div>
         <div class="brand-text">
             <div class="brand-title">SIMPEG</div>
             <div class="brand-sub">BGTK</div>

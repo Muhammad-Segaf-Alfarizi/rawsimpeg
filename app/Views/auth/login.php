@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login &mdash; SIMPEG BGTK</title>
+    <link rel="icon" type="image/png" href="https://bgtklampung.kemendikdasmen.go.id/themes/template1/img/Tutwuri.png">
+    <link rel="shortcut icon" type="image/png" href="https://bgtklampung.kemendikdasmen.go.id/themes/template1/img/Tutwuri.png">
     <script>
     (function () {
         try {
@@ -81,7 +83,9 @@
 
 <div class="login-container">
     <div class="login-logo">
-        <div class="logo-icon"><i class="fas fa-users-cog"></i></div>
+        <div class="logo-icon" style="background:transparent;box-shadow:none;">
+            <img src="https://bgtklampung.kemendikdasmen.go.id/themes/template1/img/Tutwuri.png" alt="Logo Tut Wuri Handayani" style="width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 4px 16px var(--accent-glow));">
+        </div>
         <h1 class="login-title">SIMPEG</h1>
         <p class="login-subtitle">Sistem Informasi Manajemen Pegawai &mdash; BGTK</p>
     </div>
