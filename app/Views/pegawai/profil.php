@@ -2,6 +2,26 @@
 <?php $this->section('content') ?>
 
 <?php
+// --- Cek kelengkapan SK (hanya berlaku untuk role pegawai) ---
+$__isPppkCheck = ($data['status_pegawai'] ?? '') === 'PPPK';
+$__skRequired  = ['sk_cpns', 'sk_pns', 'sk_pak', 'sk_jabatan_terakhir', 'skp_terakhir'];
+if (! $__isPppkCheck) {
+    // PNS: sk_tukin wajib
+    $__skRequired[] = 'sk_tukin';
+}
+// PPPK: sk_tukin opsional, tidak masuk daftar wajib
+
+$__skLengkap = true;
+$__skKurang  = [];
+foreach ($__skRequired as $__skField) {
+    if (empty($data[$__skField])) {
+        $__skLengkap = false;
+        $__skKurang[] = $__skField;
+    }
+}
+// Hanya terapkan blur untuk role pegawai
+$__blokKartuPenugasan = ($role === 'pegawai' && ! $__skLengkap);
+
 $status    = $data['status'] ?? 'DK';
 $statusBadge = match($status) {
     'DL'   => '<span class="badge-custom badge-info"><i class="fas fa-plane-departure"></i> Dinas Luar</span>',
@@ -27,6 +47,63 @@ function docLink($url, $label = 'Lihat Dokumen') {
 <?php endif; ?>
 
 <!-- Header Profil -->
+<style>
+    .rk-wrap { overflow:auto; max-height:560px; border:1px solid var(--border); border-radius:var(--radius-sm); }
+    .tbl-rekap { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:12px; }
+    .tbl-rekap th, .tbl-rekap td { border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:6px 8px; text-align:center; vertical-align:middle; }
+    .tbl-rekap thead th { background:var(--bg-secondary); color:var(--text-secondary); font-weight:600; font-size:11px; line-height:1.3; position:sticky; z-index:4; }
+    .tbl-rekap thead tr:nth-child(1) th { top:0;     height:34px; }
+    .tbl-rekap thead tr:nth-child(2) th { top:34px;  height:32px; }
+    .tbl-rekap thead tr:nth-child(3) th { top:66px;  height:44px; }
+    .tbl-rekap thead tr:nth-child(4) th { top:110px; height:36px; }
+    .tbl-rekap thead tr:nth-child(1) th { color:var(--text-primary); font-size:11.5px; letter-spacing:.8px; text-transform:uppercase; }
+    .tbl-rekap thead .g-dl  { box-shadow:inset 0 -2px 0 var(--info); }
+    .tbl-rekap thead .g-pan { box-shadow:inset 0 -2px 0 #a78bfa; }
+    .tbl-rekap thead .g-fas { box-shadow:inset 0 -2px 0 var(--success); }
+    .tbl-rekap thead .g-pes { box-shadow:inset 0 -2px 0 var(--warning); }
+    .tbl-rekap thead .g-jml { box-shadow:inset 0 -2px 0 var(--accent); }
+    .tbl-rekap thead .g-tot { box-shadow:inset 0 -2px 0 var(--text-muted); }
+    .tbl-rekap thead .sub   { font-size:10.5px; color:var(--text-muted); font-weight:500; }
+    .tbl-rekap thead .lvl4  { font-size:10px; color:var(--text-muted); font-weight:500; min-width:58px; }
+    .tbl-rekap td { color:var(--text-secondary); }
+    .tbl-rekap td.t { color:var(--text-primary); font-weight:600; }
+    .tbl-rekap td.hr { color:var(--text-muted); }
+    .tbl-rekap td.jml { background:rgba(99,102,241,0.06); }
+    .tbl-rekap td.jml.t { color:var(--accent-light); }
+    .tbl-rekap td.gt { color:var(--success); font-weight:800; background:rgba(16,185,129,0.06); }
+    .tbl-rekap td.gh { color:var(--info); font-weight:800; background:rgba(59,130,246,0.06); }
+    .tbl-rekap td.sep, .tbl-rekap th.sep { border-right:1px solid rgba(255,255,255,0.14); }
+    [data-theme="light"] .tbl-rekap td.sep, [data-theme="light"] .tbl-rekap th.sep { border-right:1px solid #cbd5e1; }
+    .tbl-rekap tbody tr:hover td { background-color:rgba(99,102,241,0.04); }
+    .tbl-rekap .s-no, .tbl-rekap .s-nm { position:sticky; background:var(--bg-card); z-index:3; }
+    .tbl-rekap .s-no { left:0; min-width:44px; width:44px; color:var(--text-muted); }
+    .tbl-rekap .s-nm { left:44px; min-width:200px; max-width:230px; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-right:1px solid var(--border-accent); }
+    .tbl-rekap thead .s-no, .tbl-rekap thead .s-nm { z-index:6; background:var(--bg-secondary); top:0; }
+    .tbl-rekap tbody tr:hover td.s-no, .tbl-rekap tbody tr:hover td.s-nm { background:var(--bg-card-hover); }
+    .tbl-rekap tbody tr.row-self td { background-color:rgba(99,102,241,0.12) !important; }
+    .tbl-rekap tbody tr.row-self td.s-nm { font-weight:700; color:var(--accent-light); }
+    .tbl-rekap tfoot td, .tbl-rekap tfoot th { position:sticky; bottom:0; background:var(--bg-secondary); color:var(--text-primary); font-weight:700; border-top:2px solid var(--accent); z-index:3; }
+    .tbl-rekap tfoot .s-no { z-index:5; text-align:right; padding-right:14px; color:var(--accent-light); font-size:11px; letter-spacing:1px; text-transform:uppercase; }
+    .ring-box { background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; font-size:12px; }
+    .ring-box strong { color:var(--accent-light); margin-right:4px; }
+    .btn-filter-rekap { padding:5px 12px; font-size:11.5px; border-radius:6px; border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-secondary); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all .2s; }
+    .btn-filter-rekap:hover { background:var(--bg-card-hover); color:var(--text-primary); }
+    .btn-filter-rekap.active { background:var(--accent); color:#ffffff; border-color:var(--accent); }
+
+    /* Blur overlay untuk card yang diblokir karena SK belum lengkap */
+    .sk-locked-wrapper { position: relative; }
+    .sk-locked-wrapper .sk-locked-content { filter: blur(6px); pointer-events: none; user-select: none; }
+    .sk-locked-wrapper .sk-locked-overlay {
+        position: absolute; inset: 0; z-index: 10;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+        background: rgba(15, 23, 42, 0.55); border-radius: var(--radius-sm);
+        padding: 32px 24px; text-align: center;
+    }
+    [data-theme="light"] .sk-locked-wrapper .sk-locked-overlay { background: rgba(255,255,255,0.70); }
+    .sk-locked-overlay i.lock-icon { font-size: 36px; color: var(--warning); }
+    .sk-locked-overlay .lock-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.5; max-width: 360px; }
+    .sk-locked-overlay .lock-sub { font-size: 12px; color: var(--text-muted); max-width: 340px; }
+</style>
 <div class="card-dark" style="margin-bottom:20px;">
     <div class="card-body-dark">
         <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
@@ -46,9 +123,19 @@ function docLink($url, $label = 'Lihat Dokumen') {
                     <?= $statusBadge ?>
                 </div>
             </div>
-            <?php if ($can_edit || session()->get('nip') === $nip): ?>
+            <?php
+                $isSuperAdmin = (session()->get('role') === 'super_admin');
+                $isOwnProfile = (session()->get('nip') === $nip);
+                $canEditUser = ($isSuperAdmin || $isOwnProfile);
+            ?>
+            <?php if ($can_edit): ?>
+            <a href="<?= base_url('pegawai/edit/' . urlencode($nip)) ?>" class="btn-primary-dark" style="margin-right:6px;">
+                <i class="fas fa-edit"></i> Edit Pegawai
+            </a>
+            <?php endif; ?>
+            <?php if ($canEditUser): ?>
             <a href="<?= base_url('user/edit-password/' . urlencode($nip)) ?>" class="btn-warning-dark">
-                <i class="fas fa-<?= $can_edit ? 'user-edit' : 'key' ?>"></i> <?= $can_edit ? 'Edit User & Password' : 'Ubah Password' ?>
+                <i class="fas fa-<?= $isSuperAdmin ? 'user-edit' : 'key' ?>"></i> <?= $isSuperAdmin ? 'Edit User & Password' : 'Ubah Password' ?>
             </a>
             <?php endif; ?>
         </div>
@@ -57,7 +144,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
 
 <div class="grid grid-2" style="align-items:start;">
     <!-- Kolom Kiri -->
-    <div style="display:flex;flex-direction:column;gap:1px;">
+    <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
 
         <!-- Data Pokok -->
         <div class="card-dark">
@@ -89,16 +176,18 @@ function docLink($url, $label = 'Lihat Dokumen') {
             </div>
             <div class="card-body-dark">
                 <?php
+                $isPppk = ($data['status_pegawai'] ?? '') === 'PPPK';
                 $skList = [
-                    'sk_cpns'             => 'SK CPNS',
-                    'sk_pns'              => 'SK PNS',
-                    'sk_pak'              => 'SK PAK',
-                    'sk_tukin'            => 'SK TUKIN',
+                    'sk_cpns'             => $isPppk ? 'SMPT Terakhir' : 'SK CPNS',
+                    'sk_pns'              => $isPppk ? 'SK PPPK' : 'SK PNS',
+                    'sk_pak'              => $isPppk ? 'Dokumen Kontrak Terakhir' : 'SK PAK',
+                    'sk_tukin'            => $isPppk ? 'SK TUKIN (Opsional)' : 'SK TUKIN',
                     'sk_jabatan_terakhir' => 'SK Jabatan Terakhir',
                     'skp_terakhir'        => 'SKP Terakhir',
                 ];
                 foreach ($skList as $fieldKey => $fieldLabel):
                     $skUrl = $data[$fieldKey] ?? null;
+                    $fieldLabelPlain = strip_tags($fieldLabel);
                 ?>
                 <div class="info-row">
                     <span class="info-label"><?= $fieldLabel ?></span>
@@ -108,8 +197,8 @@ function docLink($url, $label = 'Lihat Dokumen') {
                         <button type="button"
                             class="btn btn-sm" 
                             style="padding:2px 8px;font-size:11px;background:rgba(99,102,241,0.2);color:var(--accent-light);border:1px solid var(--accent);border-radius:4px;"
-                            onclick="openUploadSk('<?= $fieldKey ?>', '<?= $fieldLabel ?>', '<?= esc($skUrl ?? '', 'attr') ?>')"
-                            title="<?= $skUrl ? 'Ganti' : 'Upload' ?> <?= $fieldLabel ?>">
+                            onclick="openUploadSk('<?= $fieldKey ?>', '<?= esc($fieldLabelPlain, 'attr') ?>', '<?= esc($skUrl ?? '', 'attr') ?>')"
+                            title="<?= $skUrl ? 'Ganti' : 'Upload' ?> <?= esc($fieldLabelPlain, 'attr') ?>">
                             <i class="fas fa-<?= $skUrl ? 'sync-alt' : 'upload' ?>"></i>
                             <?= $skUrl ? 'Ganti' : 'Upload' ?>
                         </button>
@@ -127,7 +216,6 @@ function docLink($url, $label = 'Lihat Dokumen') {
                 <div class="info-row"><span class="info-label">Status</span><span class="info-value"><?= $statusBadge ?></span></div>
                 <?php if (!empty($data['status']) && $data['status'] !== 'DK'): ?>
                 <div class="info-row"><span class="info-label">Keterangan</span><span class="info-value"><?= esc($data['keterangan'] ?? '-') ?></span></div>
-                <div class="info-row"><span class="info-label">No. SPT</span><span class="info-value"><?= esc($data['no_spt'] ?? '-') ?></span></div>
                 <div class="info-row"><span class="info-label">Tanggal Mulai</span><span class="info-value"><?= fmtTgl($data['tanggal_mulai'] ?? null) ?></span></div>
                 <div class="info-row"><span class="info-label">Tanggal Selesai</span><span class="info-value"><?= fmtTgl($data['tanggal_selesai'] ?? null) ?></span></div>
                 <?php if (!empty($data['file'])): ?>
@@ -149,29 +237,184 @@ function docLink($url, $label = 'Lihat Dokumen') {
                 </div>
             </div>
         </div>
+
+        <!-- Rekap Penugasan 2026 (Tabel Rekapitulasi Penugasan SDM 2026) -->
+        <?php if ($__blokKartuPenugasan): ?>
+        <div class="sk-locked-wrapper">
+            <div class="sk-locked-overlay">
+                <i class="fas fa-lock lock-icon"></i>
+                <div class="lock-text">Anda harus mengunggah semua Dokumen SK untuk dapat melihat Rekap Penugasan</div>
+                <div class="lock-sub">Silakan lengkapi dokumen SK di bagian Dokumen SK di atas</div>
+            </div>
+            <div class="sk-locked-content">
+        <?php endif; ?>
+        <?php
+        $pairs = [
+            ['z1_tugas', 'z1_hari', 'dl'], ['z2_tugas', 'z2_hari', 'dl'], ['z3_tugas', 'z3_hari', 'dl'], ['z4_tugas', 'z4_hari', 'dl'],
+            ['pan_hotel_tugas', 'pan_hotel_hari', 'pan'], ['pan_upt_tugas', 'pan_upt_hari', 'pan'],
+            ['fasil_tugas', 'fasil_hari', 'fas'],
+            ['pes_hotel_tugas', 'pes_hotel_hari', 'pes'], ['pes_upt_tugas', 'pes_upt_hari', 'pes'],
+            ['jml_fasil_tugas', 'jml_fasil_hari', 'jml'], ['jml_dl_tugas', 'jml_dl_hari', 'jml'],
+            ['jml_panitia_tugas', 'jml_panitia_hari', 'jml'], ['jml_peserta_tugas', 'jml_peserta_hari', 'jml'],
+        ];
+
+        $matriksAll = $matriksRekap ?? [];
+        $totalsAll  = ['total_kegiatan' => 0, 'total_hari' => 0];
+        foreach ($pairs as [$t, $hr]) { $totalsAll[$t] = 0; $totalsAll[$hr] = 0; }
+        foreach ($matriksAll as $r) {
+            foreach ($totalsAll as $key => $_) {
+                $totalsAll[$key] += (int) ($r[$key] ?? 0);
+            }
+        }
+        $cellVal = static fn ($v, bool $zero = false): string => ((int) $v === 0) ? ($zero ? '0' : '') : (string) (int) $v;
+        ?>
+        <div class="card-dark">
+            <div class="card-header-dark" style="flex-direction:column;align-items:stretch;gap:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                    <h6>
+                        <i class="fas fa-chart-bar header-icon"></i> Rekap Penugasan 2026
+                        <span class="badge-custom badge-success" style="margin-left:6px;"><?= (int) $totalsAll['total_kegiatan'] ?> Kegiatan · <?= (int) $totalsAll['total_hari'] ?> Hari</span>
+                    </h6>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <button type="button" class="btn-filter-rekap active" id="btnFilterSemua" onclick="filterSemuaPegawai()">
+                            <i class="fas fa-users"></i> Semua Pegawai
+                        </button>
+                        <button type="button" class="btn-filter-rekap" id="btnFilterHanyaSaya" onclick="filterHanyaSaya()">
+                            <i class="fas fa-user-check"></i> Hanya Saya
+                        </button>
+                    </div>
+                </div>
+                <div class="pg-search" style="width:100%;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="inputCariRekap" class="form-control-dark sm" placeholder="Cari nama pegawai atau NIP...">
+                </div>
+            </div>
+            <div class="card-body-dark" style="padding:0;">
+                <div class="rk-wrap">
+                    <table class="tbl-rekap" id="tblRekapMultiHeader">
+                        <thead>
+                            <tr>
+                                <th rowspan="4" class="s-no">No.</th>
+                                <th rowspan="4" class="s-nm">Nama Pegawai</th>
+                                <th colspan="8" class="g-dl sep">Dinas Luar</th>
+                                <th colspan="4" class="g-pan sep">Panitia</th>
+                                <th colspan="2" rowspan="3" class="g-fas sep">Fasilitator</th>
+                                <th colspan="4" class="g-pes sep">Peserta</th>
+                                <th colspan="8" rowspan="2" class="g-jml sep">Jumlah</th>
+                                <th colspan="3" rowspan="3" class="g-tot">Total</th>
+                            </tr>
+                            <tr>
+                                <th colspan="2" class="g-dl">Zona 1</th>
+                                <th colspan="2" class="g-dl">Zona 2</th>
+                                <th colspan="2" class="g-dl">Zona 3</th>
+                                <th colspan="2" class="g-dl sep">Zona 4</th>
+                                <th colspan="2" rowspan="2" class="g-pan">Hotel</th>
+                                <th colspan="2" rowspan="2" class="g-pan sep">UPT Kemendikdasmen<br><span class="sub">(BGTK/BPMP/BBPL)</span></th>
+                                <th colspan="2" rowspan="2" class="g-pes">Hotel</th>
+                                <th colspan="2" rowspan="2" class="g-pes sep">UPT Kemendikdasmen<br><span class="sub">(BGTK/BPMP/BBPL)</span></th>
+                            </tr>
+                            <tr>
+                                <th colspan="2" class="sub">Bandar Lampung</th>
+                                <th colspan="2" class="sub">Lamsel, Lamteng, Pringsewu,<br>Pesawaran, Metro</th>
+                                <th colspan="2" class="sub">Lampura, Lamtim, Tanggamus,<br>Tuba, Tubaba</th>
+                                <th colspan="2" class="sub sep">WK, Lambar, Pesbar,<br>Mesuji</th>
+                                <th colspan="2" class="g-jml">Fasil</th>
+                                <th colspan="2" class="g-jml">Dinas Luar</th>
+                                <th colspan="2" class="g-jml">Panitia</th>
+                                <th colspan="2" class="g-jml sep">Peserta</th>
+                            </tr>
+                            <tr>
+                                <?php foreach ($pairs as $i => $_): ?>
+                                    <th class="lvl4">Penugasan</th>
+                                    <th class="lvl4 <?= in_array($i, [3, 5, 6, 8, 12], true) ? 'sep' : '' ?>">Jmlh. Hari<br>Tugas</th>
+                                <?php endforeach; ?>
+                                <th class="lvl4">Total<br>Kegiatan</th>
+                                <th class="lvl4">Total<br>Hari</th>
+                                <th class="lvl4">Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($matriksAll as $idx => $r):
+                            $no = (int) ($r['no_urut_rekap'] ?: $idx + 1);
+                            $isSelf = ((string)($r['nip'] ?? '') === (string)($nip ?? ''));
+                        ?>
+                            <tr class="row-pegawai-rekap<?= $isSelf ? ' row-self' : '' ?>" 
+                                data-nip="<?= esc($r['nip']) ?>" 
+                                data-search="<?= esc(strtolower(($r['nama_pegawai'] ?? '') . ' ' . ($r['nip'] ?? ''))) ?>">
+                                <td class="s-no"><?= $no ?></td>
+                                <td class="s-nm" title="<?= esc($r['nama_pegawai']) ?>">
+                                    <a href="javascript:void(0)" class="employee-link" data-audit="<?= esc($r['nip']) ?>">
+                                        <?= esc($r['nama_pegawai']) ?>
+                                    </a>
+                                    <?php if ($isSelf): ?>
+                                        <span class="badge-custom badge-primary" style="font-size:10px;padding:1px 6px;margin-left:4px;">Anda</span>
+                                    <?php endif; ?>
+                                </td>
+                                <?php foreach ($pairs as $i => [$t, $hr, $grp]):
+                                    $isJml = $grp === 'jml';
+                                    $sep = in_array($i, [3, 5, 6, 8, 12], true) ? ' sep' : '';
+                                ?>
+                                    <td class="t<?= $isJml ? ' jml' : '' ?>"><?= $cellVal($r[$t], $isJml) ?></td>
+                                    <td class="hr<?= $isJml ? ' jml' : '' ?><?= $sep ?>"><?= $cellVal($r[$hr], $isJml) ?></td>
+                                <?php endforeach; ?>
+                                <td class="gt"><?= (int) $r['total_kegiatan'] ?></td>
+                                <td class="gh"><?= (int) $r['total_hari'] ?></td>
+                                <td>
+                                    <button type="button" class="btn-info-dark btn-sm-custom" data-audit="<?= esc($r['nip']) ?>" title="Lihat rincian penugasan">
+                                        <i class="fas fa-search-plus"></i> Detail
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="2" class="s-no">Total Keseluruhan</th>
+                                <?php foreach ($pairs as $i => [$t, $hr]): ?>
+                                    <td><?= $totalsAll[$t] ?></td>
+                                    <td class="<?= in_array($i, [3, 5, 6, 8, 12], true) ? 'sep' : '' ?>"><?= $totalsAll[$hr] ?></td>
+                                <?php endforeach; ?>
+                                <td style="color:var(--success);"><?= $totalsAll['total_kegiatan'] ?></td>
+                                <td style="color:var(--info);"><?= $totalsAll['total_hari'] ?></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div class="pg-empty" id="emptyRekap" style="display:none;padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">
+                        <i class="fas fa-search"></i> Pegawai tidak ditemukan.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php if ($__blokKartuPenugasan): ?>
+            </div><!-- /.sk-locked-content -->
+        </div><!-- /.sk-locked-wrapper -->
+        <?php endif; ?>
     </div>
 
-    <!-- Kolom Kanan: Kalender Kedinasan & Rincian Penugasan Kode & SDM 2026 -->
+    <!-- Kolom Kanan: Kalender Kedinasan & Rincian Penugasan 2026 -->
     <?php
     $penList       = $penugasanList ?? [];
-    $totalKegiatan = count($penList);
-    $totalHariPen  = array_sum(array_map(static fn ($x) => (int) ($x['jumlah_hari'] ?? 0), $penList));
+    $rk            = $rekapPegawai ?? [];
+    $totalKegiatan = (int) ($rk['total_kegiatan'] ?? count($penList));
+    $totalHariPen  = (int) ($rk['total_hari'] ?? array_sum(array_map(static fn ($x) => (int) ($x['jumlah_hari'] ?? 0), $penList)));
     ?>
-    <div style="display:flex;flex-direction:column;gap:1px;">
+    <?php if ($__blokKartuPenugasan): ?>
+    <div class="sk-locked-wrapper">
+        <div class="sk-locked-overlay">
+            <i class="fas fa-lock lock-icon"></i>
+            <div class="lock-text">Anda harus mengunggah semua Dokumen SK untuk dapat melihat ini</div>
+            <div class="lock-sub">Silakan lengkapi dokumen SK di bagian Dokumen SK terlebih dahulu</div>
+        </div>
+        <div class="sk-locked-content">
+    <?php endif; ?>
+    <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
         <div class="card-dark">
             <div class="card-header-dark">
                 <h6>
                     <i class="fas fa-calendar-alt header-icon"></i> Kalender Kedinasan &amp; Kode SDM 2026
                     <span class="badge-custom badge-primary" style="margin-left:6px;"><?= $totalKegiatan ?> Kegiatan · <?= $totalHariPen ?> Hari</span>
                 </h6>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <a href="<?= base_url('jadwal-penugasan?nip=' . urlencode($nip)) ?>" class="btn-info-dark btn-sm-custom" title="Lihat Matriks Jadwal Tahunan Pegawai Ini">
-                        <i class="fas fa-calendar-check"></i> Matriks Jadwal
-                    </a>
-                    <a href="<?= base_url('kegiatan') ?>" class="btn-primary-dark btn-sm-custom" title="Buka Halaman Kode dan SDM">
-                        <i class="fas fa-clipboard-list"></i> Kode &amp; SDM
-                    </a>
-                </div>
             </div>
             <div class="card-body-dark">
                 <!-- Legenda Warna Kode & SDM -->
@@ -270,6 +513,10 @@ function docLink($url, $label = 'Lihat Dokumen') {
             </div>
         </div>
     </div>
+    <?php if ($__blokKartuPenugasan): ?>
+        </div><!-- /.sk-locked-content -->
+    </div><!-- /.sk-locked-wrapper -->
+    <?php endif; ?>
 </div>
 
 <?php if ($role === 'pegawai'): ?>
@@ -336,6 +583,50 @@ function docLink($url, $label = 'Lihat Dokumen') {
 </div>
 <?php endif; ?>
 
+<!-- MODAL AUDIT TRAIL / RINCIAN PENUGASAN REKAP -->
+<div class="modal fade" id="modalAuditRekap" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-clipboard-check" style="color:var(--accent);margin-right:8px;"></i>
+                    <span id="auditRekapNama">Rincian Penugasan SDM</span>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px;">
+                    Ringkasan Kode per Kategori
+                </div>
+                <div id="auditRingkasanBadges" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+                <div class="pg-scroll" style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);">
+                    <table class="table-dark-custom" style="font-size:12px;margin:0;">
+                        <thead>
+                            <tr>
+                                <th style="width:60px;text-align:center;">Kode</th>
+                                <th>Kegiatan</th>
+                                <th>Peran</th>
+                                <th>Lokus</th>
+                                <th style="text-align:center;">Zona</th>
+                                <th style="text-align:center;">Tahap</th>
+                                <th style="text-align:center;">Tanggal</th>
+                                <th style="text-align:center;">Hari</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyAuditTrail"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary-dark" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php $this->endSection() ?>
 <?php $this->section('scripts') ?>
 <script>
@@ -393,6 +684,122 @@ function fokusTanggalKalender(tgl, ep) {
     if (ep) {
         tampilkanDetailKalender(ep);
     }
+}
+
+// Filter & Search Rekap SDM
+var inputCari = document.getElementById('inputCariRekap');
+if (inputCari) {
+    inputCari.addEventListener('input', function() {
+        var q = this.value.toLowerCase().trim();
+        var rows = document.querySelectorAll('#tblRekapMultiHeader tbody tr.row-pegawai-rekap');
+        var shown = 0;
+        rows.forEach(function(tr) {
+            var match = !q || (tr.getAttribute('data-search') || '').includes(q);
+            tr.style.display = match ? '' : 'none';
+            if (match) shown++;
+        });
+        var emptyEl = document.getElementById('emptyRekap');
+        if (emptyEl) emptyEl.style.display = shown ? 'none' : 'block';
+    });
+}
+
+function filterHanyaSaya() {
+    var myNip = '<?= esc($nip, 'js') ?>';
+    var rows = document.querySelectorAll('#tblRekapMultiHeader tbody tr.row-pegawai-rekap');
+    var shown = 0;
+    rows.forEach(function(tr) {
+        var isMe = (tr.getAttribute('data-nip') || '') === myNip;
+        tr.style.display = isMe ? '' : 'none';
+        if (isMe) shown++;
+    });
+    var emptyEl = document.getElementById('emptyRekap');
+    if (emptyEl) emptyEl.style.display = shown ? 'none' : 'block';
+    
+    var btnSaya = document.getElementById('btnFilterHanyaSaya');
+    var btnSemua = document.getElementById('btnFilterSemua');
+    if (btnSaya) btnSaya.classList.add('active');
+    if (btnSemua) btnSemua.classList.remove('active');
+}
+
+function filterSemuaPegawai() {
+    var rows = document.querySelectorAll('#tblRekapMultiHeader tbody tr.row-pegawai-rekap');
+    rows.forEach(function(tr) { tr.style.display = ''; });
+    var emptyEl = document.getElementById('emptyRekap');
+    if (emptyEl) emptyEl.style.display = 'none';
+    var inputCari = document.getElementById('inputCariRekap');
+    if (inputCari) inputCari.value = '';
+
+    var btnSaya = document.getElementById('btnFilterHanyaSaya');
+    var btnSemua = document.getElementById('btnFilterSemua');
+    if (btnSemua) btnSemua.classList.add('active');
+    if (btnSaya) btnSaya.classList.remove('active');
+}
+
+document.addEventListener('click', function(e) {
+    var el = e.target.closest('[data-audit]');
+    if (el) {
+        e.preventDefault();
+        bukaModalAuditTrail(el.getAttribute('data-audit'));
+    }
+});
+
+function pgRoleBadge(peran) {
+    var map = {
+        'Dinas Luar': 'badge-info', 'Panitia Hotel': 'badge-primary', 'Panitia UPT': 'badge-primary',
+        'Fasilitator': 'badge-success', 'Peserta Hotel': 'badge-warning', 'Peserta UPT': 'badge-warning'
+    };
+    return '<span class="badge-custom ' + (map[peran] || 'badge-secondary') + '">' + escHtml(peran) + '</span>';
+}
+
+function bukaModalAuditTrail(nip) {
+    document.getElementById('auditRekapNama').textContent = 'Memuat...';
+    document.getElementById('auditRingkasanBadges').innerHTML = '';
+    document.getElementById('tbodyAuditTrail').innerHTML = '<tr><td colspan="8" class="text-center" style="padding:24px;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Memuat rincian penugasan...</td></tr>';
+    $('#modalAuditRekap').modal('show');
+    muatDataAuditTrail(nip);
+}
+
+function muatDataAuditTrail(nip) {
+    fetch('<?= base_url('rekap-penugasan/detail') ?>/' + encodeURIComponent(nip))
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.status !== 'ok') {
+                document.getElementById('tbodyAuditTrail').innerHTML = '<tr><td colspan="8" class="text-center" style="padding:20px;color:var(--danger);">' + escHtml(res.message || 'Gagal memuat data.') + '</td></tr>';
+                return;
+            }
+            var peg = res.pegawai || {};
+            document.getElementById('auditRekapNama').textContent = (peg.nama || nip) + ' · NIP ' + (peg.nip || nip);
+
+            var ring = res.ringkasan || {};
+            var keys = Object.keys(ring);
+            document.getElementById('auditRingkasanBadges').innerHTML = keys.length
+                ? keys.map(function(k) {
+                    return '<div class="ring-box"><strong>' + escHtml(k) + ':</strong> ' + escHtml(ring[k].join(', ')) + '</div>';
+                }).join('')
+                : '<span style="color:var(--text-muted);font-size:12px;">Belum ada penugasan tercatat.</span>';
+
+            var rows = res.rincian || [];
+            var tbody = document.getElementById('tbodyAuditTrail');
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:24px;color:var(--text-muted);">Belum ada penugasan tercatat untuk pegawai ini.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.map(function(r) {
+                return '<tr>' +
+                    '<td style="text-align:center;"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:24px;padding:0 6px;border-radius:5px;font-weight:800;font-size:11px;color:#0f172a;background:' + escHtml(r.warna_hex || '#E5B8B7') + ';border:1px solid rgba(0,0,0,0.25);">K' + escHtml(r.kode_kegiatan) + '</span></td>' +
+                    '<td style="color:var(--text-primary);font-weight:600;">' + escHtml(r.nama_kegiatan) + '</td>' +
+                    '<td>' + pgRoleBadge(r.kategori_peran) + (r.peran_detail ? '<br><small style="color:var(--text-muted);">' + escHtml(r.peran_detail) + '</small>' : '') + '</td>' +
+                    '<td>' + escHtml(r.kab_kota_lokus || '-') + (r.detail_lokus && r.detail_lokus !== r.kab_kota_lokus ? '<br><small style="color:var(--text-muted);">' + escHtml(r.detail_lokus) + '</small>' : '') + '</td>' +
+                    '<td style="text-align:center;"><span class="badge-custom ' + (r.zona === 'NON_ZONA' ? 'badge-secondary' : 'badge-info') + '">' + escHtml(r.zona) + '</span></td>' +
+                    '<td style="text-align:center;">' + escHtml(r.tahap || '—') + '</td>' +
+                    '<td style="text-align:center;font-size:11.5px;white-space:nowrap;">' + escHtml(r.tanggal_mulai_tugas) + '<br><small style="color:var(--text-muted);">s.d. ' + escHtml(r.tanggal_selesai_tugas) + '</small></td>' +
+                    '<td style="text-align:center;color:var(--text-primary);font-weight:700;">' + escHtml(r.jumlah_hari) + '</td>' +
+                '</tr>';
+            }).join('');
+        })
+        .catch(function(err) {
+            document.getElementById('tbodyAuditTrail').innerHTML = '<tr><td colspan="8" class="text-center" style="padding:20px;color:var(--danger);">Gagal menghubungi server.</td></tr>';
+        });
 }
 
 <?php if ($role === 'pegawai'): ?>

@@ -26,10 +26,10 @@ class Tna extends BaseController
 
         // URL kembali berdasarkan role
         $backUrl = match($role) {
-            'super_admin' => base_url('dashboard/super-admin'),
-            'admin'       => base_url('dashboard/admin'),
-            'kepala'      => base_url('dashboard/kepala'),
-            default       => base_url('pegawai/profil/' . urlencode($nip)),
+            'super_admin' => 'dashboard/super-admin',
+            'admin'       => 'dashboard/admin',
+            'kepala'      => 'dashboard/kepala',
+            default       => 'pegawai/profil/' . urlencode($nip),
         };
 
         return view('tna/index', [

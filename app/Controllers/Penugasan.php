@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\KegiatanModel;
 use App\Models\PenugasanModel;
 use App\Models\PegawaiModel;
+use App\Models\RiwayatStatusModel;
 
 require_once APPPATH . 'Helpers/penugasan_helper.php';
 
@@ -13,12 +14,14 @@ class Penugasan extends BaseController
     protected KegiatanModel $kegiatanModel;
     protected PenugasanModel $penugasanModel;
     protected PegawaiModel $pegawaiModel;
+    protected RiwayatStatusModel $riwayatModel;
 
     public function __construct()
     {
         $this->kegiatanModel  = new KegiatanModel();
         $this->penugasanModel = new PenugasanModel();
         $this->pegawaiModel   = new PegawaiModel();
+        $this->riwayatModel   = new RiwayatStatusModel();
     }
 
     // ─── 1. HALAMAN KODE DAN SDM (/kegiatan) ────────────────────────────────────
@@ -27,6 +30,7 @@ class Penugasan extends BaseController
         $role         = (string) session()->get('role');
         $kegiatanList = $this->kegiatanModel->getAllWithPenugasan();
         $pegawaiList  = $this->pegawaiModel->orderBy('no_urut_rekap', 'ASC')->orderBy('id', 'ASC')->findAll();
+        $cutiList     = $this->riwayatModel->getDaftarCuti();
 
         return view('penugasan/kode_sdm', [
             'page_title'      => 'Kode dan SDM Kegiatan BGTK 2026',
@@ -34,6 +38,7 @@ class Penugasan extends BaseController
             'active_tab'      => 'kode_sdm',
             'kegiatanList'    => $kegiatanList,
             'pegawaiList'     => $pegawaiList,
+            'cutiList'        => $cutiList,
             'aliasMap'        => getAliasPegawai(),
             'zonaMap'         => getZonaMapping(),
             'kabKotaMap'      => getAllKabKota(),
@@ -58,21 +63,24 @@ class Penugasan extends BaseController
         $jadwalData   = $this->penugasanModel->getJadwalMatriks($bulanFilter, $nipFilter ?: null, $kodeFilter ?: null);
         $kegiatanList = $this->kegiatanModel->orderBy('CAST(kode_kegiatan AS UNSIGNED)', 'ASC')->findAll();
         $pegawaiAll   = $this->pegawaiModel->orderBy('no_urut_rekap', 'ASC')->orderBy('id', 'ASC')->findAll();
+        $cutiList     = $this->riwayatModel->getDaftarCuti();
 
         return view('penugasan/jadwal', [
-            'page_title'   => 'Matriks Jadwal Penugasan SDM 2026',
-            'title_icon'   => 'fas fa-calendar-check',
-            'active_tab'   => 'jadwal',
-            'jadwalData'   => $jadwalData,
-            'kegiatanList' => $kegiatanList,
-            'pegawaiAll'   => $pegawaiAll,
-            'kabKotaMap'   => getAllKabKota(),
-            'aliasMap'     => getAliasPegawai(),
-            'bulanFilter'  => $bulanFilter,
-            'nipFilter'    => $nipFilter,
-            'kodeFilter'   => $kodeFilter,
-            'role'         => $role,
-            'back_url'     => $this->getDashboardUrl($role),
+            'page_title'       => 'Matriks Jadwal Penugasan SDM 2026',
+            'title_icon'       => 'fas fa-calendar-check',
+            'active_tab'       => 'jadwal',
+            'jadwalData'       => $jadwalData,
+            'kegiatanList'     => $kegiatanList,
+            'pegawaiAll'       => $pegawaiAll,
+            'cutiList'         => $cutiList,
+            'jenisCutiOptions' => RiwayatStatusModel::JENIS_CUTI_OPTIONS,
+            'kabKotaMap'       => getAllKabKota(),
+            'aliasMap'         => getAliasPegawai(),
+            'bulanFilter'      => $bulanFilter,
+            'nipFilter'        => $nipFilter,
+            'kodeFilter'       => $kodeFilter,
+            'role'             => $role,
+            'back_url'         => $this->getDashboardUrl($role),
         ]);
     }
 
@@ -82,6 +90,7 @@ class Penugasan extends BaseController
         $role         = (string) session()->get('role');
         $matriks      = $this->penugasanModel->getMatriksRekap();
         $kegiatanList = $this->kegiatanModel->orderBy('CAST(kode_kegiatan AS UNSIGNED)', 'ASC')->findAll();
+        $cutiList     = $this->riwayatModel->getDaftarCuti();
 
         return view('penugasan/rekap', [
             'page_title'   => 'Rekapitulasi Penugasan SDM BGTK 2026',
@@ -89,6 +98,7 @@ class Penugasan extends BaseController
             'active_tab'   => 'rekap',
             'matriks'      => $matriks,
             'kegiatanList' => $kegiatanList,
+            'cutiList'     => $cutiList,
             'kabKotaMap'   => getAllKabKota(),
             'role'         => $role,
             'back_url'     => $this->getDashboardUrl($role),
@@ -244,6 +254,7 @@ class Penugasan extends BaseController
             'status'    => 'ok',
             'kegiatan'  => $keg,
             'penugasan' => $list,
+            'cuti_list' => $this->riwayatModel->getDaftarCuti(),
         ]);
     }
 
@@ -278,6 +289,19 @@ class Penugasan extends BaseController
 
         if (!$tglMulai) $tglMulai = $keg['tanggal_mulai'];
         if (!$tglSelesai) $tglSelesai = $keg['tanggal_selesai'] ?: $tglMulai;
+
+        // Validasi Cuti: Pegawai yang sedang cuti tidak dapat ditugaskan pada kegiatan Kode & SDM
+        $cutiBentrok = $this->riwayatModel->cekBentrokCuti($peg['nip'], $tglMulai, $tglSelesai);
+        if ($cutiBentrok) {
+            $jenis = $cutiBentrok['jenis_cuti'] ?: 'Cuti';
+            $ket   = ! empty($cutiBentrok['keterangan']) ? " ({$cutiBentrok['keterangan']})" : '';
+            $msg   = "Pegawai {$peg['nama']} sedang {$jenis}{$ket} pada tanggal {$cutiBentrok['tanggal_mulai']} s.d. {$cutiBentrok['tanggal_selesai']} sehingga tidak dapat ditugaskan pada kegiatan ini.";
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['status' => 'error', 'message' => $msg]);
+            }
+            return redirect()->back()->with('error', $msg);
+        }
+
         $jumlahHari = hitungHariPenuh($tglMulai, $tglSelesai);
 
         $zona = ($katPeran === 'Dinas Luar')
@@ -336,6 +360,19 @@ class Penugasan extends BaseController
         $tahap       = trim((string) $this->request->getPost('tahap')) ?: null;
         $tglMulai    = $this->request->getPost('tanggal_mulai_tugas') ?: $existing['tanggal_mulai_tugas'];
         $tglSelesai  = $this->request->getPost('tanggal_selesai_tugas') ?: $existing['tanggal_selesai_tugas'];
+
+        // Validasi Cuti: Pegawai yang sedang cuti tidak dapat ditugaskan pada tanggal tersebut
+        $cutiBentrok = $this->riwayatModel->cekBentrokCuti($existing['nip'], $tglMulai, $tglSelesai);
+        if ($cutiBentrok) {
+            $jenis = $cutiBentrok['jenis_cuti'] ?: 'Cuti';
+            $ket   = ! empty($cutiBentrok['keterangan']) ? " ({$cutiBentrok['keterangan']})" : '';
+            $msg   = "Pegawai {$existing['nama_pegawai']} sedang {$jenis}{$ket} pada tanggal {$cutiBentrok['tanggal_mulai']} s.d. {$cutiBentrok['tanggal_selesai']} sehingga tidak dapat ditugaskan pada tanggal tersebut.";
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['status' => 'error', 'message' => $msg]);
+            }
+            return redirect()->back()->with('error', $msg);
+        }
+
         $jumlahHari  = hitungHariPenuh($tglMulai, $tglSelesai);
 
         $zona = ($katPeran === 'Dinas Luar')
@@ -423,11 +460,19 @@ class Penugasan extends BaseController
             }
         }
 
+        // Ambil peta pegawai yang sedang cuti pada rentang tanggal kegiatan ini
+        $cutiMap     = $this->riwayatModel->getMapCutiBentrok($tglMulai, $tglSelesai);
+        $skippedCuti = 0;
+
         $allPegawai = $this->pegawaiModel->orderBy('no_urut_rekap', 'ASC')->findAll();
         $inserted = 0;
 
         foreach ($allPegawai as $peg) {
             if (in_array($peg['nip'], $existingNips, true)) {
+                continue;
+            }
+            if (isset($cutiMap[$peg['nip']])) {
+                $skippedCuti++;
                 continue;
             }
 
@@ -462,10 +507,111 @@ class Penugasan extends BaseController
             $inserted++;
         }
 
+        $msg = "Berhasil mem-plot {$inserted} pegawai ke Kode {$keg['kode_kegiatan']} ({$keg['nama_kegiatan']}).";
+        if ($skippedCuti > 0) {
+            $msg .= " ({$skippedCuti} pegawai dilewati karena sedang cuti / tugas kedinasan lain).";
+        }
+
         return $this->response->setJSON([
-            'status'   => 'ok',
-            'inserted' => $inserted,
-            'message'  => "Berhasil mem-plot {$inserted} pegawai ke Kode {$keg['kode_kegiatan']} ({$keg['nama_kegiatan']}).",
+            'status'       => 'ok',
+            'inserted'     => $inserted,
+            'skipped_cuti' => $skippedCuti,
+            'message'      => $msg,
+        ]);
+    }
+
+    // ─── CRUD CUTI & TUGAS KEDINASAN LAIN (DARI HALAMAN JADWAL PENUGASAN) ──────
+    public function listCuti()
+    {
+        return $this->response->setJSON([
+            'status'    => 'ok',
+            'cuti_list' => $this->riwayatModel->getDaftarCuti(),
+        ]);
+    }
+
+    public function simpanCuti()
+    {
+        $idCuti     = (int) $this->request->getPost('id_cuti');
+        $nip        = trim((string) $this->request->getPost('nip'));
+        $jenisCuti  = trim((string) $this->request->getPost('jenis_cuti'));
+        $keterangan = trim((string) $this->request->getPost('keterangan'));
+        $tglMulai   = trim((string) $this->request->getPost('tanggal_mulai'));
+        $tglSelesai = trim((string) $this->request->getPost('tanggal_selesai'));
+
+        if ($nip === '' || $jenisCuti === '' || $tglMulai === '' || $tglSelesai === '') {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Pegawai, Jenis Cuti, Tanggal Mulai, dan Tanggal Akhir Cuti wajib diisi.',
+            ]);
+        }
+
+        if (! in_array($jenisCuti, RiwayatStatusModel::JENIS_CUTI_OPTIONS, true)) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Pilihan jenis cuti tidak valid.',
+            ]);
+        }
+
+        if (strtotime($tglSelesai) < strtotime($tglMulai)) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Tanggal akhir cuti tidak boleh lebih awal dari tanggal mulai cuti.',
+            ]);
+        }
+
+        $peg = $this->pegawaiModel->where('nip', $nip)->first();
+        if (! $peg) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Data pegawai tidak ditemukan.',
+            ]);
+        }
+
+        $this->riwayatModel->ensureSchema();
+
+        $payload = [
+            'nip'             => $peg['nip'],
+            'status'          => 'Cuti',
+            'jenis_cuti'      => $jenisCuti,
+            'keterangan'      => $keterangan,
+            'tanggal_mulai'   => $tglMulai,
+            'tanggal_selesai' => $tglSelesai,
+            'set_by'          => (string) session()->get('nip'),
+        ];
+
+        if ($idCuti > 0) {
+            $existing = $this->riwayatModel->find($idCuti);
+            if (! $existing) {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Data cuti tidak ditemukan.']);
+            }
+            $this->riwayatModel->update($idCuti, $payload);
+            $msg = "Data {$jenisCuti} untuk {$peg['nama']} ({$tglMulai} s.d. {$tglSelesai}) berhasil diperbarui.";
+        } else {
+            $idCuti = (int) $this->riwayatModel->insert($payload);
+            $msg = "Data {$jenisCuti} untuk {$peg['nama']} ({$tglMulai} s.d. {$tglSelesai}) berhasil disimpan.";
+        }
+
+        return $this->response->setJSON([
+            'status'    => 'ok',
+            'id_cuti'   => $idCuti,
+            'message'   => $msg,
+            'cuti_list' => $this->riwayatModel->getDaftarCuti(),
+        ]);
+    }
+
+    public function hapusCuti(int $id)
+    {
+        $row = $this->riwayatModel->find($id);
+        if (! $row) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Data cuti tidak ditemukan.']);
+        }
+
+        $this->riwayatModel->delete($id);
+
+        return $this->response->setJSON([
+            'status'    => 'ok',
+            'message'   => 'Data cuti berhasil dihapus.',
+            'cuti_list' => $this->riwayatModel->getDaftarCuti(),
         ]);
     }
 
@@ -475,6 +621,7 @@ class Penugasan extends BaseController
         $nip = urldecode((string) $nip);
         $peg = $this->pegawaiModel->where('nip', $nip)->orWhere('nama', $nip)->first();
         $rincian = $this->penugasanModel->getDetailByPegawai($nip);
+        $cutiPegawai = $this->riwayatModel->getDaftarCuti(null, $peg['nip'] ?? $nip);
 
         // Ringkasan kode per kategori (contoh: Zona 2: K4(4h), K8(3h)...)
         $ringkasanKategori = [
@@ -509,6 +656,7 @@ class Penugasan extends BaseController
             'status'    => 'ok',
             'pegawai'   => $peg,
             'rincian'   => $rincian,
+            'cuti'      => $cutiPegawai,
             'ringkasan' => array_filter($ringkasanKategori),
         ]);
     }

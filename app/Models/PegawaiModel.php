@@ -72,6 +72,9 @@ class PegawaiModel extends Model
         ", [$nip, $nip])->getRowArray();
 
         if ($status) {
+            if (! empty($status['jenis_cuti'])) {
+                $status['keterangan'] = $status['jenis_cuti'] . (! empty($status['keterangan']) ? ' — ' . $status['keterangan'] : '');
+            }
             $pegawai = array_merge($pegawai, $status);
         } else {
             $pegawai['status']          = 'DK';

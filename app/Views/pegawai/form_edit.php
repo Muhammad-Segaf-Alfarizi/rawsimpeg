@@ -66,44 +66,18 @@
             </div>
 
             <hr class="divider">
-            <p class="section-title">Status Kedinasan</p>
-            <div class="grid grid-2">
-                <div class="form-group">
-                    <label class="form-label-dark">Status</label>
-                    <select name="status" id="statusSelect" class="form-control-dark">
-                        <option value="DK" <?= ($data['status'] ?? 'DK') === 'DK' ? 'selected' : '' ?>>Di Kantor (DK)</option>
-                        <option value="DL" <?= ($data['status'] ?? '') === 'DL' ? 'selected' : '' ?>>Dinas Luar (DL)</option>
-                        <option value="Cuti" <?= ($data['status'] ?? '') === 'Cuti' ? 'selected' : '' ?>>Cuti</option>
-                    </select>
-                </div>
-            </div>
-            <div id="extraFields" style="display:none;">
-                <div class="grid grid-2">
-                    <div class="form-group">
-                        <label class="form-label-dark">Keterangan</label>
-                        <input type="text" name="keterangan" class="form-control-dark" value="<?= esc($data['keterangan'] ?? '') ?>">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label-dark">No. SPT</label>
-                        <input type="text" name="no_spt" class="form-control-dark" value="<?= esc($data['no_spt'] ?? '') ?>">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label-dark">Tanggal Mulai</label>
-                        <input type="date" name="tanggal_mulai" class="form-control-dark" value="<?= esc($data['tanggal_mulai'] ?? '') ?>">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label-dark">Tanggal Selesai</label>
-                        <input type="date" name="tanggal_selesai" class="form-control-dark" value="<?= esc($data['tanggal_selesai'] ?? '') ?>">
-                    </div>
-                </div>
-            </div>
-
-            <hr class="divider">
+            <?php
+            $isPppkEdit = ($data['status_pegawai'] ?? '') === 'PPPK';
+            ?>
             <p class="section-title">Update Dokumen SK <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">(biarkan kosong jika tidak diubah)</span></p>
             <div class="grid grid-3">
                 <?php foreach ([
-                    ['sk_cpns', 'SK CPNS'], ['sk_pns', 'SK PNS'], ['sk_tukin', 'SK Tukin'],
-                    ['sk_jabatan_terakhir', 'SK Jabatan Terakhir'], ['sk_pak', 'SK PAK'], ['skp_terakhir', 'SKP Terakhir'],
+                    ['sk_cpns', $isPppkEdit ? 'SMPT Terakhir' : 'SK CPNS'],
+                    ['sk_pns',  $isPppkEdit ? 'SK PPPK' : 'SK PNS'],
+                    ['sk_tukin', $isPppkEdit ? 'SK Tukin ⚠️ (opsional)' : 'SK Tukin'],
+                    ['sk_jabatan_terakhir', 'SK Jabatan Terakhir'],
+                    ['sk_pak', $isPppkEdit ? 'Dokumen Kontrak Terakhir' : 'SK PAK'],
+                    ['skp_terakhir', 'SKP Terakhir'],
                 ] as [$fname, $flabel]):
                     $existing = $data[$fname] ?? null;
                 ?>

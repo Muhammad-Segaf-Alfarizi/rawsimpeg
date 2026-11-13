@@ -37,27 +37,14 @@ $statusBadge = static function (string $st): string {
     .sdm-collapsed .sdm-group:nth-child(n+4) { display:none; }
     .alias-chips { display:flex; flex-wrap:wrap; gap:6px; }
     .alias-chips .pg-chip { padding:3px 10px; font-size:11.5px; }
+    /* Toggle Switch */
+    .pg-switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+    .pg-switch input { opacity:0; width:0; height:0; position:absolute; }
+    .pg-switch-slider { position:absolute; cursor:pointer; top:0;left:0;right:0;bottom:0; background:var(--border); border-radius:24px; transition:.25s; }
+    .pg-switch-slider:before { content:''; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.25s; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+    .pg-switch input:checked + .pg-switch-slider { background:var(--accent); }
+    .pg-switch input:checked + .pg-switch-slider:before { transform:translateX(20px); }
 </style>
-
-<!-- STATISTIK -->
-<div class="grid grid-4" style="margin-bottom:20px;">
-    <div class="stat-card">
-        <div class="stat-icon accent"><i class="fas fa-clipboard-list"></i></div>
-        <div><div class="stat-value"><?= count($kegiatanList) ?></div><div class="stat-label">Kode Kegiatan</div></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon success"><i class="fas fa-check-double"></i></div>
-        <div><div class="stat-value"><?= $jmlDone ?></div><div class="stat-label">Sudah Terlaksana (DONE)</div></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon warning"><i class="fas fa-hourglass-half"></i></div>
-        <div><div class="stat-value"><?= $jmlTerjadwal ?></div><div class="stat-label">Terjadwal</div></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon info"><i class="fas fa-user-check"></i></div>
-        <div><div class="stat-value"><?= $jmlSdmTotal ?></div><div class="stat-label">Total Penugasan SDM</div></div>
-    </div>
-</div>
 
 <!-- FILTER & LEGENDA -->
 <div class="card-dark">
@@ -409,10 +396,13 @@ $kegForm = static function (string $p, array $timOpts): string {
                                 </div>
                                 <select name="nip" id="sdmSelectNip" class="form-control-dark sm" required>
                                     <option value="">— Pilih pegawai —</option>
-                                    <?php foreach ($pegawaiList as $p): ?>
-                                        <option value="<?= esc($p['nip']) ?>" data-nama="<?= esc(strtolower($p['nama'])) ?>">#<?= (int) $p['no_urut_rekap'] ?> — <?= esc($p['nama']) ?></option>
+                                    <?php foreach ($pegawaiList as $p):
+                                        $optLabel = '#' . (int) $p['no_urut_rekap'] . ' — ' . $p['nama'];
+                                    ?>
+                                        <option value="<?= esc($p['nip']) ?>" data-nama="<?= esc(strtolower($p['nama'])) ?>" data-label="<?= esc($optLabel) ?>"><?= esc($optLabel) ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <div id="infoCutiRentangSdm" style="display:none;margin-top:6px;padding:6px 10px;border-radius:var(--radius-sm);background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;font-size:11.5px;"></div>
                             </div>
                             <div class="col-lg-3 form-group">
                                 <label class="form-label-dark">Kategori Peran *</label>
@@ -437,11 +427,13 @@ $kegForm = static function (string $p, array $timOpts): string {
                             </div>
                             <div class="col-lg-2 form-group">
                                 <label class="form-label-dark">Tahap</label>
-                                <select name="tahap" id="sdmTahap" class="form-control-dark sm">
-                                    <option value="">—</option>
-                                    <option value="Tahap 1">Tahap 1</option>
-                                    <option value="Tahap 2">Tahap 2</option>
-                                </select>
+                                <div style="display:flex;align-items:center;gap:8px;padding-top:4px;">
+                                    <label class="pg-switch" title="Aktifkan untuk membuat penugasan Tahap 1 & Tahap 2 sekaligus">
+                                        <input type="checkbox" id="sdmDuaTahap" onchange="updateLabelTahap()">
+                                        <span class="pg-switch-slider"></span>
+                                    </label>
+                                    <span id="labelTahapStatus" style="font-size:12px;color:var(--text-muted);font-weight:600;">1 Tahap</span>
+                                </div>
                             </div>
                         </div>
                         <div class="row" style="align-items:flex-end;">
@@ -502,6 +494,7 @@ $kegForm = static function (string $p, array $timOpts): string {
 <script>
 const ALIAS_MAP = <?= json_encode($aliasMap) ?>;
 const TIM_WARNA = <?= json_encode($timKerjaOptions) ?>;
+let   CUTI_LIST = <?= json_encode($cutiList ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 
 // ── Filter tabel ────────────────────────────────────────────────────
 function applyTableFilter() {
@@ -593,6 +586,14 @@ function bukaModalEditKegiatan(k) {
 
 // ── Kelola SDM ──────────────────────────────────────────────────────
 let currentModalIdKegiatan = 0;
+let currentSdmRows = []; // Data penugasan yang sudah terplot untuk cek duplikat
+
+function updateLabelTahap() {
+    const on = document.getElementById('sdmDuaTahap').checked;
+    const label = document.getElementById('labelTahapStatus');
+    label.textContent = on ? '2 Tahap' : '1 Tahap';
+    label.style.color = on ? 'var(--accent-light)' : 'var(--text-muted)';
+}
 
 function updateAutoZona() {
     const peran = document.getElementById('sdmKategoriPeran').value;
@@ -606,6 +607,55 @@ function updateAutoZona() {
 function hitungHariModal() {
     const n = pgHitungHari(document.getElementById('sdmTglMulai').value, document.getElementById('sdmTglSelesai').value);
     document.getElementById('labelAutoHari').textContent = n + ' hari';
+    evaluasiCutiDropdownPegawai();
+}
+
+function cariCutiBentrokSdm(nip, tglMulai, tglSelesai) {
+    if (!nip || !tglMulai) return null;
+    const m = tglMulai;
+    const s = tglSelesai || tglMulai;
+    return CUTI_LIST.find(c => {
+        if (c.nip !== nip || !c.tanggal_mulai) return false;
+        const cm = c.tanggal_mulai;
+        const cs = c.tanggal_selesai || c.tanggal_mulai;
+        return cm <= s && cs >= m;
+    }) || null;
+}
+
+function evaluasiCutiDropdownPegawai() {
+    const m = document.getElementById('sdmTglMulai').value;
+    const s = document.getElementById('sdmTglSelesai').value || m;
+    const sel = document.getElementById('sdmSelectNip');
+    const infoBox = document.getElementById('infoCutiRentangSdm');
+    let cutiNames = [];
+
+    Array.from(sel.options).slice(1).forEach(opt => {
+        const baseLabel = opt.dataset.label || opt.textContent;
+        const cuti = m ? cariCutiBentrokSdm(opt.value, m, s) : null;
+        if (cuti) {
+            const jns = cuti.jenis_cuti || 'Cuti';
+            const tSelesai = cuti.tanggal_selesai || cuti.tanggal_mulai;
+            opt.disabled = true;
+            opt.textContent = `${baseLabel} — [SEDANG CUTI: ${jns} (${cuti.tanggal_mulai} s.d. ${tSelesai})]`;
+            cutiNames.push(`${cuti.nama_pegawai || baseLabel} (${jns})`);
+            if (sel.value === opt.value) {
+                sel.value = '';
+            }
+        } else {
+            opt.disabled = false;
+            opt.textContent = baseLabel;
+        }
+    });
+
+    if (infoBox) {
+        if (cutiNames.length > 0) {
+            infoBox.style.display = 'block';
+            infoBox.innerHTML = `<i class="fas fa-calendar-minus"></i> <strong>${cutiNames.length} pegawai sedang cuti</strong> pada rentang tanggal ini (dinonaktifkan): ${cutiNames.map(x => h(x)).join(', ')}.`;
+        } else {
+            infoBox.style.display = 'none';
+            infoBox.innerHTML = '';
+        }
+    }
 }
 
 function filterOpsiPegawai(keyword) {
@@ -613,23 +663,41 @@ function filterOpsiPegawai(keyword) {
     if (ALIAS_MAP[q]) q = ALIAS_MAP[q].toLowerCase();
     const sel = document.getElementById('sdmSelectNip');
     let first = null;
+    let firstBlocked = null;
     Array.from(sel.options).slice(1).forEach(opt => {
         const vis = !q || (opt.dataset.nama || '').includes(q);
         opt.hidden = !vis;
-        if (vis && !first) first = opt.value;
+        if (vis) {
+            if (!opt.disabled && !first) first = opt.value;
+            if (opt.disabled && !firstBlocked) firstBlocked = opt;
+        }
     });
-    if (q && first) sel.value = first;
+    if (q) {
+        if (first) {
+            sel.value = first;
+        } else if (firstBlocked) {
+            sel.value = '';
+        }
+    }
+    return { first, firstBlocked };
 }
 
 function pilihDariAlias(name) {
     document.getElementById('filterDropdownPegawai').value = name;
-    filterOpsiPegawai(name);
+    const res = filterOpsiPegawai(name);
+    if (!res.first && res.firstBlocked) {
+        pgToast(`${res.firstBlocked.textContent} — tidak dapat ditugaskan pada tanggal kegiatan ini.`, 'warning');
+    }
 }
 
 function bukaModalKelolaSdm(idKegiatan) {
     currentModalIdKegiatan = idKegiatan;
+    currentSdmRows = [];
     document.getElementById('sdmIdKegiatan').value = idKegiatan;
     document.getElementById('tbodyRincianSdmKegiatan').innerHTML = '<tr><td colspan="9" class="pg-empty"><i class="fas fa-spinner fa-spin"></i> Memuat...</td></tr>';
+    // Reset toggle tahap
+    document.getElementById('sdmDuaTahap').checked = false;
+    updateLabelTahap();
     $('#modalKelolaSdm').modal('show');
     muatRincianKegiatan(idKegiatan, true);
 }
@@ -639,6 +707,9 @@ function muatRincianKegiatan(idKegiatan, resetForm = false) {
         .then(r => r.json())
         .then(res => {
             if (res.status !== 'ok') { pgToast(res.message || 'Gagal memuat data', 'danger'); return; }
+            if (Array.isArray(res.cuti_list)) {
+                CUTI_LIST = res.cuti_list;
+            }
             const k = res.kegiatan;
             const kb = document.getElementById('sdmModalKode');
             kb.textContent = k.kode_kegiatan;
@@ -650,9 +721,12 @@ function muatRincianKegiatan(idKegiatan, resetForm = false) {
                 document.getElementById('sdmDetailLokus').value = '';
                 hitungHariModal();
                 updateAutoZona();
+            } else {
+                evaluasiCutiDropdownPegawai();
             }
 
             const rows = res.penugasan || [];
+            currentSdmRows = rows;
             document.getElementById('sdmCount').textContent = rows.length;
             const tbody = document.getElementById('tbodyRincianSdmKegiatan');
             if (!rows.length) {
@@ -678,17 +752,68 @@ function muatRincianKegiatan(idKegiatan, resetForm = false) {
 
 function submitTambahSdm(e) {
     e.preventDefault();
-    pgPost('<?= base_url('kegiatan/penugasan/simpan') ?>', new FormData(e.target)).then(res => {
-        if (res.status === 'ok') {
-            pgToast(res.message);
-            document.getElementById('sdmSelectNip').value = '';
-            document.getElementById('filterDropdownPegawai').value = '';
-            filterOpsiPegawai('');
-            muatRincianKegiatan(currentModalIdKegiatan);
+    const form = e.target;
+    const nip = document.getElementById('sdmSelectNip').value;
+    const duaTahap = document.getElementById('sdmDuaTahap').checked;
+
+    // Cek apakah pegawai sudah ditugaskan di kegiatan ini
+    const sudahAda = currentSdmRows.filter(p => p.nip === nip);
+    const namaOpt = document.getElementById('sdmSelectNip').selectedOptions[0];
+    const namaPegawai = namaOpt ? namaOpt.dataset.label || namaOpt.textContent : nip;
+
+    function doSubmit() {
+        if (duaTahap) {
+            // Submit dua kali: Tahap 1 lalu Tahap 2
+            const fd1 = new FormData(form);
+            fd1.set('tahap', 'Tahap 1');
+            pgPost('<?= base_url('kegiatan/penugasan/simpan') ?>', fd1).then(res1 => {
+                if (res1.status !== 'ok') {
+                    pgToast(res1.message || 'Gagal menyimpan penugasan Tahap 1', 'danger');
+                    return;
+                }
+                const fd2 = new FormData(form);
+                fd2.set('tahap', 'Tahap 2');
+                pgPost('<?= base_url('kegiatan/penugasan/simpan') ?>', fd2).then(res2 => {
+                    if (res2.status === 'ok') {
+                        pgToast(`${namaPegawai} berhasil ditugaskan untuk Tahap 1 & Tahap 2.`);
+                    } else {
+                        pgToast(`Tahap 1 berhasil, tetapi Tahap 2 gagal: ${res2.message || 'Error'}`, 'warning');
+                    }
+                    document.getElementById('sdmSelectNip').value = '';
+                    document.getElementById('filterDropdownPegawai').value = '';
+                    filterOpsiPegawai('');
+                    muatRincianKegiatan(currentModalIdKegiatan);
+                });
+            });
         } else {
-            pgToast(res.message || 'Gagal menyimpan penugasan', 'danger');
+            // Submit 1 tahap (tanpa label tahap)
+            const fd = new FormData(form);
+            fd.set('tahap', '');
+            pgPost('<?= base_url('kegiatan/penugasan/simpan') ?>', fd).then(res => {
+                if (res.status === 'ok') {
+                    pgToast(res.message);
+                    document.getElementById('sdmSelectNip').value = '';
+                    document.getElementById('filterDropdownPegawai').value = '';
+                    filterOpsiPegawai('');
+                    muatRincianKegiatan(currentModalIdKegiatan);
+                } else {
+                    pgToast(res.message || 'Gagal menyimpan penugasan', 'danger');
+                }
+            });
         }
-    });
+    }
+
+    if (sudahAda.length > 0) {
+        const tahapList = sudahAda.map(p => p.tahap || '—').join(', ');
+        pgConfirm(
+            `${namaPegawai} sudah ditugaskan pada kegiatan ini (${sudahAda.length}x, Tahap: ${tahapList}). Apakah yakin ingin menambahkannya lagi${duaTahap ? ' untuk 2 tahap' : ''}?`,
+            { title: 'Pegawai Sudah Terdaftar', okText: 'Ya, Tambahkan Lagi', danger: false }
+        ).then(ok => {
+            if (ok) doSubmit();
+        });
+    } else {
+        doSubmit();
+    }
 }
 
 function hapusSdmAjax(id, nama) {

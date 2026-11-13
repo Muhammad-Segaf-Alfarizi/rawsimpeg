@@ -76,13 +76,20 @@
 
             <hr class="divider">
             <p class="section-title">Unggah Dokumen SK <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">(opsional, format PDF, maks 5MB)</span></p>
-            <div class="grid grid-3">
-                <?php foreach ([
-                    ['sk_cpns', 'SK CPNS'], ['sk_pns', 'SK PNS'], ['sk_tukin', 'SK Tukin'],
-                    ['sk_jabatan_terakhir', 'SK Jabatan Terakhir'], ['sk_pak', 'SK PAK'], ['skp_terakhir', 'SKP Terakhir'],
-                ] as [$name, $label]): ?>
+            <div class="grid grid-3" id="gridDokumenSk">
+                <?php
+                // Label default (PNS). Akan diganti JS jika user pilih PPPK.
+                $skFields = [
+                    ['sk_cpns', 'SK CPNS', 'SMPT Terakhir'],
+                    ['sk_pns',  'SK PNS',  'SK PPPK'],
+                    ['sk_tukin','SK Tukin', 'SK Tukin ⚠️ (opsional)'],
+                    ['sk_jabatan_terakhir', 'SK Jabatan Terakhir', 'SK Jabatan Terakhir'],
+                    ['sk_pak',  'SK PAK',  'Dokumen Kontrak Terakhir'],
+                    ['skp_terakhir', 'SKP Terakhir', 'SKP Terakhir'],
+                ];
+                foreach ($skFields as [$name, $labelPns, $labelPppk]): ?>
                 <div class="form-group">
-                    <label class="form-label-dark"><?= $label ?></label>
+                    <label class="form-label-dark" data-sk-field="<?= $name ?>" data-label-pns="<?= esc($labelPns) ?>" data-label-pppk="<?= esc($labelPppk) ?>"><?= $labelPns ?></label>
                     <input type="file" name="<?= $name ?>" class="form-control-dark" accept=".pdf" style="padding:8px;">
                 </div>
                 <?php endforeach; ?>
@@ -96,4 +103,14 @@
         </form>
     </div>
 </div>
+<?= $this->section('scripts') ?>
+<script>
+document.querySelector('select[name="status_pegawai"]').addEventListener('change', function() {
+    const isPppk = this.value === 'PPPK';
+    document.querySelectorAll('[data-sk-field]').forEach(label => {
+        label.textContent = isPppk ? label.dataset.labelPppk : label.dataset.labelPns;
+    });
+});
+</script>
+<?= $this->endSection() ?>
 <?php $this->endSection() ?>

@@ -23,9 +23,12 @@ class Abk extends BaseController
         $pegawai = $this->pegawaiModel->findByNip($nip);
 
         return view('abk/index', [
-            'nip'     => $nip,
-            'pegawai' => $pegawai,
-            'abkList' => $this->abkModel->getByNip($nip),
+            'nip'        => $nip,
+            'pegawai'    => $pegawai,
+            'abkList'    => $this->abkModel->getByNip($nip),
+            'back_url'   => 'pegawai/profil/' . urlencode($nip),
+            'page_title' => 'Analisis Beban Kerja — ' . ($pegawai['nama'] ?? $nip),
+            'title_icon' => 'fas fa-briefcase',
         ]);
     }
 

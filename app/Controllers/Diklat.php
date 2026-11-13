@@ -29,6 +29,9 @@ class Diklat extends BaseController
             'nip'        => $nip,
             'pegawai'    => $pegawai,
             'diklatList' => $this->diklatModel->getByNip($nip),
+            'back_url'   => 'pegawai/profil/' . urlencode($nip),
+            'page_title' => 'Daftar Diklat — ' . ($pegawai['nama'] ?? $nip),
+            'title_icon' => 'fas fa-graduation-cap',
         ]);
     }
 

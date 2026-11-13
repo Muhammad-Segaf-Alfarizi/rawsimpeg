@@ -25,6 +25,9 @@ class Penghargaan extends BaseController
             'nip'             => $nip,
             'pegawai'         => $pegawai,
             'penghargaanList' => $this->penghargaanModel->getByNip($nip),
+            'back_url'        => 'pegawai/profil/' . urlencode($nip),
+            'page_title'      => 'Penghargaan — ' . ($pegawai['nama'] ?? $nip),
+            'title_icon'      => 'fas fa-award',
         ]);
     }
 

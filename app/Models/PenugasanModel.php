@@ -85,6 +85,35 @@ class PenugasanModel extends Model
     }
 
     /**
+     * Ambil rekapitulasi penugasan untuk 1 pegawai berdasarkan NIP
+     */
+    public function getRekapByNip(string $nip): array
+    {
+        foreach ($this->getMatriksRekap() as $row) {
+            if ((string) ($row['nip'] ?? '') === $nip) {
+                return $row;
+            }
+        }
+
+        return [
+            'z1_tugas' => 0, 'z1_hari' => 0,
+            'z2_tugas' => 0, 'z2_hari' => 0,
+            'z3_tugas' => 0, 'z3_hari' => 0,
+            'z4_tugas' => 0, 'z4_hari' => 0,
+            'pan_hotel_tugas' => 0, 'pan_hotel_hari' => 0,
+            'pan_upt_tugas' => 0, 'pan_upt_hari' => 0,
+            'fasil_tugas' => 0, 'fasil_hari' => 0,
+            'pes_hotel_tugas' => 0, 'pes_hotel_hari' => 0,
+            'pes_upt_tugas' => 0, 'pes_upt_hari' => 0,
+            'jml_fasil_tugas' => 0, 'jml_fasil_hari' => 0,
+            'jml_dl_tugas' => 0, 'jml_dl_hari' => 0,
+            'jml_panitia_tugas' => 0, 'jml_panitia_hari' => 0,
+            'jml_peserta_tugas' => 0, 'jml_peserta_hari' => 0,
+            'total_kegiatan' => 0, 'total_hari' => 0,
+        ];
+    }
+
+    /**
      * Ambil matriks kalender Jadwal Tahunan (Gantt Chart) seperti Sheet "Jadwal" di Excel
      */
     public function getJadwalMatriks(?int $bulanFilter = null, ?string $nipFilter = null, ?string $kodeFilter = null): array

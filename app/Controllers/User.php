@@ -56,7 +56,7 @@ class User extends BaseController
         $sessionNip  = (string) session()->get('nip');
 
         // Hanya super_admin atau pemilik akun sendiri yang boleh mengakses
-        if ($sessionRole !== 'super_admin' && $nip !== $sessionNip) {
+        if (!in_array($sessionRole, ['super_admin']) && $nip !== $sessionNip) {
             return redirect()->to('/pegawai/profil/' . urlencode($sessionNip))
                 ->with('error', 'Anda hanya dapat mengubah password akun Anda sendiri.');
         }

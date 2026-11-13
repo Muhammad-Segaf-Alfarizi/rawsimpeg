@@ -67,26 +67,6 @@ $cell = static fn ($v, bool $zero = false): string => ((int) $v === 0) ? ($zero 
     .ring-box strong { color:var(--accent-light); margin-right:4px; }
 </style>
 
-<!-- STATISTIK -->
-<div class="grid grid-4" style="margin-bottom:20px;">
-    <div class="stat-card">
-        <div class="stat-icon accent"><i class="fas fa-users"></i></div>
-        <div><div class="stat-value"><?= count($matriks) ?></div><div class="stat-label">Pegawai</div></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon info"><i class="fas fa-route"></i></div>
-        <div><div class="stat-value"><?= $totals['jml_dl_tugas'] ?></div><div class="stat-label">Dinas Luar · <?= $totals['jml_dl_hari'] ?> hari</div></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon warning"><i class="fas fa-user-tie"></i></div>
-        <div><div class="stat-value"><?= $totals['jml_panitia_tugas'] ?></div><div class="stat-label">Panitia · <?= $totals['jml_panitia_hari'] ?> hari</div></div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon success"><i class="fas fa-check-double"></i></div>
-        <div><div class="stat-value"><?= $totals['total_kegiatan'] ?></div><div class="stat-label">Total Penugasan · <?= $totals['total_hari'] ?> hari</div></div>
-    </div>
-</div>
-
 <!-- TABEL REKAP -->
 <div class="card-dark">
     <div class="card-header-dark">

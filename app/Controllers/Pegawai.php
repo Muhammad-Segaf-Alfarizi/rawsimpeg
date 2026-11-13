@@ -17,10 +17,14 @@ class Pegawai extends BaseController
         $this->riwayatModel  = new RiwayatStatusModel();
     }
 
-    public function profil(string $nip)
+    public function profil(?string $nip = null)
     {
         $role       = session()->get('role');
         $nipSession = session()->get('nip');
+
+        if ($nip === null || $nip === '') {
+            return redirect()->to('/pegawai/profil/' . urlencode((string) $nipSession));
+        }
 
         // Proteksi: pegawai hanya bisa lihat profil sendiri
         if ($role === 'pegawai' && $nip !== $nipSession) {
@@ -47,15 +51,18 @@ class Pegawai extends BaseController
         // Kalender & daftar penugasan dari Kode dan SDM 2026 (penugasan_sdm + kegiatan)
         $penugasanModel = new \App\Models\PenugasanModel();
         $penugasanList  = $penugasanModel->getDetailByPegawai($nip);
+        $rekapPegawai   = $penugasanModel->getRekapByNip($nip);
+        $matriksRekap   = $penugasanModel->getMatriksRekap();
 
         // Format kalender untuk FullCalendar (end bersifat eksklusif di FullCalendar, tambah +1 hari)
         $events = [];
         foreach ($kalender as $k) {
-            if (empty($k['tanggal_mulai']) || empty($k['tanggal_selesai'])) {
+            if (empty($k['tanggal_mulai']) || empty($k['tanggal_selesai']) || $k['tanggal_mulai'] === '0000-00-00') {
                 continue;
             }
+            $labelStatus = ! empty($k['jenis_cuti']) ? $k['jenis_cuti'] : ($k['status'] ?: 'Cuti');
             $events[] = [
-                'title'     => $k['status'] . ($k['keterangan'] ? ' - ' . $k['keterangan'] : ''),
+                'title'     => $labelStatus . ($k['keterangan'] ? ' - ' . $k['keterangan'] : ''),
                 'start'     => $k['tanggal_mulai'],
                 'end'       => date('Y-m-d', strtotime($k['tanggal_selesai'] . ' +1 day')),
                 'color'     => match ($k['status']) {
@@ -66,8 +73,8 @@ class Pegawai extends BaseController
                 'textColor' => '#ffffff',
                 'extendedProps' => [
                     'source'      => 'riwayat_status',
-                    'status'      => $k['status'],
-                    'description' => ($k['status'] ?? '') . ($k['keterangan'] ? ' — ' . $k['keterangan'] : '') . ' (' . $k['tanggal_mulai'] . ' s.d. ' . $k['tanggal_selesai'] . ')',
+                    'status'      => $labelStatus,
+                    'description' => $labelStatus . ($k['keterangan'] ? ' — ' . $k['keterangan'] : '') . ' (' . $k['tanggal_mulai'] . ' s.d. ' . $k['tanggal_selesai'] . ')',
                 ],
             ];
         }
@@ -135,9 +142,11 @@ class Pegawai extends BaseController
             'kgb'           => $kgb,
             'events'        => json_encode($events, JSON_UNESCAPED_UNICODE),
             'penugasanList' => $penugasanList,
+            'rekapPegawai'  => $rekapPegawai,
+            'matriksRekap'  => $matriksRekap,
             'role'          => $role,
-            'can_edit'      => ($role === 'super_admin'),
-            'back_url'      => $this->getDashboardUrl($role),
+            'can_edit'      => in_array($role, ['super_admin', 'admin']),
+            'back_url'      => ($role === 'pegawai') ? null : $this->getDashboardUrl($role),
         ]);
     }
 
@@ -250,27 +259,6 @@ class Pegawai extends BaseController
                 $newName = $nip . '_' . $field . '.' . $file->getClientExtension();
                 $file->move($uploadPath, $newName);
                 $updateData[$field] = 'uploads/dokumen_pegawai/' . $newName;
-            }
-        }
-
-        // Update status kedinasan jika ada
-        $newStatus = $this->request->getPost('status');
-        if ($newStatus) {
-            $existingStatus = $this->riwayatModel->getStatusHariIni($nip);
-            $statusData = [
-                'nip'             => $nip,
-                'status'          => $newStatus,
-                'keterangan'      => $this->request->getPost('keterangan') ?? '',
-                'tanggal_mulai'   => $this->request->getPost('tanggal_mulai'),
-                'tanggal_selesai' => $this->request->getPost('tanggal_selesai'),
-                'no_spt'          => $this->request->getPost('no_spt') ?? '',
-                'set_by'          => session()->get('nip'),
-            ];
-
-            if ($existingStatus) {
-                $this->riwayatModel->update($existingStatus['id'], $statusData);
-            } else {
-                $this->riwayatModel->save($statusData);
             }
         }
 

@@ -277,17 +277,49 @@
             .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
             .grid-2 { grid-template-columns: 1fr; }
             #main-content { padding: 16px; }
+
+            /* Topbar responsive */
+            #topbar { padding: 0 12px; height: 56px; gap: 8px; }
+            .topbar-left { gap: 8px; min-width: 0; flex: 1; }
+            .topbar-right { gap: 6px; flex-shrink: 0; }
+            .page-title {
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+                min-width: 0;
+            }
+            .page-title i { margin-right: 4px !important; font-size: 12px; }
+            .btn-back { padding: 4px 8px; font-size: 11px; gap: 4px; }
+            .btn-theme-toggle span { display: none; }
+            .btn-theme-toggle { padding: 7px 10px; }
+            .btn-logout { padding: 7px 10px; font-size: 0; gap: 0; }
+            .btn-logout i { font-size: 14px; }
         }
         @media (max-width: 480px) {
             .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+
+            /* Topbar extra small */
+            #topbar { padding: 0 8px; height: 48px; }
+            .topbar-left { gap: 6px; }
+            .page-title { font-size: 12px; }
         }
     </style>
 </head>
 <body>
-<?php $__role = session()->get('role'); $__nip = session()->get('nip'); $__cur = service('uri')->getSegments(); ?>
+<?php
+$__role = session()->get('role');
+$__nip  = session()->get('nip');
+$__cur  = service('uri')->getSegments();
+$__noSidebar = ($__role === 'pegawai');
+?>
+<?php if (! $__noSidebar): ?>
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<?php endif; ?>
 
 <div id="wrapper">
+    <?php if (! $__noSidebar): ?>
     <!-- SIDEBAR -->
     <nav id="sidebar">
         <div class="sidebar-brand">
@@ -329,32 +361,6 @@
                         <span class="nav-icon"><i class="fas fa-th-large"></i></span> Dashboard
                     </a>
                 </div>
-            <?php elseif ($__role === 'pegawai'): ?>
-                <div class="nav-item">
-                    <a href="<?= base_url('pegawai/profil/' . $__nip) ?>" class="nav-link-custom">
-                        <span class="nav-icon"><i class="fas fa-id-card"></i></span> Profil Saya
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="<?= base_url('diklat/' . $__nip) ?>" class="nav-link-custom">
-                        <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span> Diklat Saya
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="<?= base_url('penghargaan/' . $__nip) ?>" class="nav-link-custom">
-                        <span class="nav-icon"><i class="fas fa-award"></i></span> Penghargaan
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="<?= base_url('abk/' . $__nip) ?>" class="nav-link-custom">
-                        <span class="nav-icon"><i class="fas fa-briefcase"></i></span> ABK Saya
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="<?= base_url('tna/' . $__nip) ?>" class="nav-link-custom">
-                        <span class="nav-icon"><i class="fas fa-brain"></i></span> TNA Saya
-                    </a>
-                </div>
             <?php endif; ?>
 
             <!-- MENU MONITORING 2026 -->
@@ -391,19 +397,30 @@
             </div>
         </div>
     </nav>
+    <?php endif; ?>
 
     <!-- CONTENT WRAPPER -->
-    <div id="content-wrapper">
+    <div id="content-wrapper" <?= $__noSidebar ? 'style="margin-left:0 !important;"' : '' ?>>
         <!-- TOPBAR -->
         <div id="topbar">
             <div class="topbar-left">
+                <?php if (! $__noSidebar): ?>
                 <button id="sidebar-toggle"><i class="fas fa-bars"></i></button>
-                <?php if (isset($back_url)): ?>
+                <?php else: ?>
+                <a href="<?= base_url('pegawai/profil/' . urlencode((string) $__nip)) ?>" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;padding-right:12px;border-right:1px solid var(--border);">
+                    <img src="https://bgtklampung.kemendikdasmen.go.id/themes/template1/img/Tutwuri.png" alt="Logo Tut Wuri Handayani" style="width:32px;height:32px;object-fit:contain;">
+                    <div style="line-height:1.15;">
+                        <div style="font-weight:800;font-size:14px;color:var(--text-primary);">SIMPEG</div>
+                        <div style="font-size:10px;color:var(--text-muted);letter-spacing:0.5px;">BGTK LAMPUNG</div>
+                    </div>
+                </a>
+                <?php endif; ?>
+                <?php if (! empty($back_url)): ?>
                 <a href="<?= base_url($back_url) ?>" class="btn-back"><i class="fas fa-arrow-left"></i> Kembali</a>
                 <?php endif; ?>
                 <span class="page-title">
-                    <i class="<?= $title_icon ?? 'fas fa-circle' ?>" style="color:var(--accent);margin-right:8px;"></i>
-                    <?= $page_title ?? 'SIMPEG' ?>
+                    <i class="<?= $title_icon ?? 'fas fa-id-card' ?>" style="color:var(--accent);margin-right:8px;"></i>
+                    <?= $page_title ?? 'Profil Pegawai' ?>
                 </span>
             </div>
             <div class="topbar-right">
