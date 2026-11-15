@@ -134,7 +134,7 @@
 
         <hr class="section-divider">
         <p style="font-size:12px;color:var(--muted);text-align:center;">
-            Hubungi administrator jika lupa password atau akun terkunci.
+            Hubungi administrator (Kepegawaian) jika lupa password atau akun terkunci.
         </p>
     </div>
 

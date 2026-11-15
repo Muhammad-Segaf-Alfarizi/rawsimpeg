@@ -106,25 +106,11 @@ $pwdHash  = (string) ($user['password'] ?? '');
             <hr class="divider">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
                 <div style="display:flex;gap:10px;">
-                    <button type="submit" class="btn-primary-dark"><i class="fas fa-save"></i> Simpan &amp; Hash Password</button>
+                    <button type="submit" class="btn-primary-dark"><i class="fas fa-save"></i> Simpan Password</button>
                     <a href="<?= base_url('pegawai/profil/' . urlencode($user['nip'] ?? '')) ?>" class="btn-back">Batal</a>
                 </div>
             </div>
         </form>
-
-        <?php if ($isSuper): ?>
-        <hr class="divider">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:12px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);">
-            <div>
-                <div style="font-size:13px;font-weight:600;color:var(--text-primary);"><i class="fas fa-database" style="color:var(--accent);margin-right:6px;"></i>Migrasi Hash Seluruh User</div>
-                <div style="font-size:11.5px;color:var(--text-muted);">Enkripsi otomatis seluruh password di tabel <code>user</code> yang masih berformat plain-text menjadi Bcrypt.</div>
-            </div>
-            <form method="POST" action="<?= base_url('user/hash-all') ?>">
-                <?= csrf_field() ?>
-                <button type="submit" class="btn-success-dark"><i class="fas fa-shield-alt"></i> Hash Semua Password</button>
-            </form>
-        </div>
-        <?php endif; ?>
     </div>
 </div>
 

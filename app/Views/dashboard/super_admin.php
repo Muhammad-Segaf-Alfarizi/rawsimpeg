@@ -44,12 +44,6 @@
             <a href="<?= base_url('user/tambah') ?>" class="btn-info-dark">
                 <i class="fas fa-user-shield"></i> Tambah User
             </a>
-            <form method="POST" action="<?= base_url('user/hash-all') ?>" style="margin:0;">
-                <?= csrf_field() ?>
-                <button type="submit" class="btn-success-dark" title="Enkripsi otomatis seluruh password plain-text di database menjadi Bcrypt">
-                    <i class="fas fa-lock"></i> Hash Semua Password
-                </button>
-            </form>
         </div>
     </div>
     <div class="card-body-dark" style="padding:0;">
