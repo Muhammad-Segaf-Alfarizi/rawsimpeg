@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Models\TnaModel;
 use App\Models\PegawaiModel;
-use App\Libraries\GDriveLibrary;
 
 class Tna extends BaseController
 {
@@ -20,7 +19,9 @@ class Tna extends BaseController
     // ─── INDEX ─────────────────────────────────────────────────────────────────
     public function index(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeViewAccess($nip, 'tna')) {
+            return $redirect;
+        }
         $role    = session()->get('role');
         $pegawai = $this->pegawaiModel->findByNip($nip);
 
@@ -28,7 +29,6 @@ class Tna extends BaseController
         $backUrl = match($role) {
             'super_admin' => 'dashboard/super-admin',
             'admin'       => 'dashboard/admin',
-            'kepala'      => 'dashboard/kepala',
             default       => 'pegawai/profil/' . urlencode($nip),
         };
 
@@ -36,6 +36,7 @@ class Tna extends BaseController
             'nip'        => $nip,
             'pegawai'    => $pegawai,
             'tnaList'    => $this->tnaModel->getByNip($nip),
+            'can_edit'   => $this->canModifyEmployeeData($nip),
             'back_url'   => $backUrl,
             'page_title' => 'TNA — ' . ($pegawai['nama'] ?? $nip),
             'title_icon' => 'fas fa-brain',
@@ -45,7 +46,9 @@ class Tna extends BaseController
     // ─── SIMPAN (TAMBAH) ───────────────────────────────────────────────────────
     public function simpan(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'tna')) {
+            return $redirect;
+        }
 
         $rules = [
             'kompetensi_dibutuhkan' => 'required',
@@ -56,14 +59,14 @@ class Tna extends BaseController
         ];
 
         if (! $this->validate($rules)) {
-            return redirect()->to('/tna/' . $nip)
+            return redirect()->to('/tna/' . urlencode($nip))
                 ->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
         $role    = session()->get('role');
-        $fileUrl = $this->handleUpload($nip, 'dokumen_pendukung');
+        $fileUrl = $this->uploadEmployeeAttachment($this->pegawaiModel, $nip, 'dokumen_pendukung', 'TNA');
 
-        // Pegawai → menunggu, Admin/Super Admin → langsung Disetujui
+        // Pegawai → menunggu, Kepala/Admin/Super Admin → langsung Disetujui
         $statusPersetujuan = ($role === 'pegawai') ? 'Menunggu Persetujuan' : 'Disetujui';
 
         $this->tnaModel->save([
@@ -89,23 +92,25 @@ class Tna extends BaseController
             ? 'Usulan TNA berhasil diajukan dan menunggu persetujuan.'
             : 'Data TNA berhasil ditambahkan.';
 
-        return redirect()->to('/tna/' . $nip)->with('success', $msg);
+        return redirect()->to('/tna/' . urlencode($nip))->with('success', $msg);
     }
 
     // ─── UPDATE (EDIT) ─────────────────────────────────────────────────────────
     public function update(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'tna')) {
+            return $redirect;
+        }
 
         $id  = (int) $this->request->getPost('id_tna');
-        $row = $this->tnaModel->find($id);
+        $row = $this->findOwnedRecord($this->tnaModel, $id, $nip);
 
         if (! $row) {
-            return redirect()->to('/tna/' . $nip)->with('error', 'Data tidak ditemukan.');
+            return redirect()->to('/tna/' . urlencode($nip))->with('error', 'Data tidak ditemukan.');
         }
 
         $role    = session()->get('role');
-        $fileUrl = $this->handleUpload($nip, 'dokumen_pendukung', $row['dokumen_pendukung'] ?? null);
+        $fileUrl = $this->uploadEmployeeAttachment($this->pegawaiModel, $nip, 'dokumen_pendukung', 'TNA', $row['dokumen_pendukung'] ?? null);
 
         // Reset ke Menunggu Persetujuan jika pegawai edit
         $statusPersetujuan = ($role === 'pegawai') ? 'Menunggu Persetujuan' : ($row['status_persetujuan'] ?? 'Disetujui');
@@ -128,21 +133,27 @@ class Tna extends BaseController
             'dokumen_pendukung'      => $fileUrl,
         ]);
 
-        return redirect()->to('/tna/' . $nip)->with('success', 'Data TNA berhasil diperbarui.');
+        return redirect()->to('/tna/' . urlencode($nip))->with('success', 'Data TNA berhasil diperbarui.');
     }
 
     // ─── HAPUS ─────────────────────────────────────────────────────────────────
     public function hapus(string $nip, int $id)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'tna')) {
+            return $redirect;
+        }
 
-        $row = $this->tnaModel->find($id);
-        if ($row && ! empty($row['dokumen_pendukung'])) {
-            (new GDriveLibrary())->delete($row['dokumen_pendukung']);
+        $row = $this->findOwnedRecord($this->tnaModel, $id, $nip);
+        if (! $row) {
+            return redirect()->to('/tna/' . urlencode($nip))->with('error', 'Data tidak ditemukan.');
+        }
+
+        if (! empty($row['dokumen_pendukung'])) {
+            $this->createGDrive()->delete($row['dokumen_pendukung']);
         }
 
         $this->tnaModel->delete($id);
-        return redirect()->to('/tna/' . $nip)->with('success', 'Data TNA berhasil dihapus.');
+        return redirect()->to('/tna/' . urlencode($nip))->with('success', 'Data TNA berhasil dihapus.');
     }
 
     // ─── PERSETUJUAN (hanya Super Admin & Admin) ───────────────────────────────
@@ -150,58 +161,22 @@ class Tna extends BaseController
     {
         $role = session()->get('role');
         if (! in_array($role, ['super_admin', 'admin'])) {
-            return redirect()->to('/tna/' . $nip)->with('error', 'Akses ditolak.');
+            return redirect()->to('/tna/' . urlencode($nip))->with('error', 'Akses ditolak.');
+        }
+
+        if (! $this->findOwnedRecord($this->tnaModel, $id, $nip)) {
+            return redirect()->to('/tna/' . urlencode($nip))->with('error', 'Data tidak ditemukan.');
         }
 
         $aksi = $this->request->getPost('aksi'); // 'Disetujui' atau 'Ditolak'
         if (! in_array($aksi, ['Disetujui', 'Ditolak'])) {
-            return redirect()->to('/tna/' . $nip)->with('error', 'Aksi tidak valid.');
+            return redirect()->to('/tna/' . urlencode($nip))->with('error', 'Aksi tidak valid.');
         }
 
         $this->tnaModel->update($id, ['status_persetujuan' => $aksi]);
 
-        return redirect()->to('/tna/' . $nip)
+        return redirect()->to('/tna/' . urlencode($nip))
             ->with('success', 'Status persetujuan diubah menjadi: ' . $aksi);
-    }
-
-    // ─── HELPER: Upload File GDrive ────────────────────────────────────────────
-    private function handleUpload(string $nip, string $inputName, ?string $existingUrl = null): ?string
-    {
-        $file = $this->request->getFile($inputName);
-
-        if (! $file || ! $file->isValid() || $file->hasMoved()) {
-            return $existingUrl; // Kembalikan file lama jika tidak ada upload baru
-        }
-
-        if (! GDriveLibrary::validateFile($file)) {
-            return $existingUrl; // File tidak valid, kembalikan file lama
-        }
-
-        $gdrive = new GDriveLibrary();
-
-        // Hapus file lama sebelum upload baru
-        if ($existingUrl) {
-            $gdrive->delete($existingUrl);
-        }
-
-        $url = $gdrive->upload(
-            $file->getTempName(),
-            $nip . '_TNA_' . time() . '.' . $file->getClientExtension(),
-            $file->getMimeType(),
-            env('gdrive.folderIdTna')
-        );
-
-        return ($url !== false) ? $url : $existingUrl;
-    }
-
-    // ─── HELPER: Cek Akses ────────────────────────────────────────────────────
-    private function checkAccess(string $nip): void
-    {
-        $role = session()->get('role');
-        if ($role === 'pegawai' && $nip !== session()->get('nip')) {
-            redirect()->to('/tna/' . session()->get('nip'))->send();
-            exit;
-        }
     }
 }
 

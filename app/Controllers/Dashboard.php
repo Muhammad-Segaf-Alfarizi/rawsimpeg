@@ -87,12 +87,13 @@ class Dashboard extends BaseController
         $db    = \Config\Database::connect();
 
         $stats = [
-            'total_pegawai' => $this->pegawaiModel->countAll(),
-            'total_dl'      => $db->query("SELECT COUNT(DISTINCT nip) AS c FROM penugasan_sdm WHERE ? BETWEEN tanggal_mulai_tugas AND tanggal_selesai_tugas", [$today])->getRow()->c ?? 0,
-            'total_cuti'    => $db->query("SELECT COUNT(DISTINCT nip) AS c FROM riwayat_status WHERE status='Cuti' AND ? BETWEEN tanggal_mulai AND tanggal_selesai", [$today])->getRow()->c ?? 0,
+            'total_pegawai'   => $this->pegawaiModel->countAll(),
+            'total_dl'        => $db->query("SELECT COUNT(DISTINCT nip) AS c FROM penugasan_sdm WHERE ? BETWEEN tanggal_mulai_tugas AND tanggal_selesai_tugas", [$today])->getRow()->c ?? 0,
+            'total_cuti'      => $db->query("SELECT COUNT(DISTINCT nip) AS c FROM riwayat_status WHERE status='Cuti' AND ? BETWEEN tanggal_mulai AND tanggal_selesai", [$today])->getRow()->c ?? 0,
+            'total_abk_belum' => $db->query("SELECT COUNT(*) AS c FROM pegawai WHERE nip NOT IN (SELECT DISTINCT nip FROM abk)")->getRow()->c ?? 0,
         ];
 
-        $pegawaiList = $this->pegawaiModel->orderBy('no_urut_rekap', 'ASC')->orderBy('nama', 'ASC')->findAll();
+        $pegawaiList = $this->pegawaiModel->getAllWithStats();
 
         foreach ($pegawaiList as &$peg) {
             $peg['status_hari_ini'] = $this->riwayatModel->getStatusHariIni($peg['nip']);

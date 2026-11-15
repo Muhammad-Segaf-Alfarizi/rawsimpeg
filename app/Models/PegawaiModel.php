@@ -13,7 +13,7 @@ class PegawaiModel extends Model
     protected $allowedFields = [
         'nip', 'nama', 'status_pegawai', 'golongan', 'jabatan', 'no_urut_rekap',
         'tanggal_lahir', 'tmt_awal', 'pendidikan_terakhir', 'lulusan_pendidikan',
-        'sk_cpns', 'sk_pns', 'sk_pak', 'sk_tukin', 'sk_jabatan_terakhir', 'skp_terakhir',
+        'sk_cpns', 'sk_pns', 'sk_pak', 'sk_tukin', 'sk_kgb', 'sk_jabatan_terakhir', 'skp_terakhir',
         'created_at', 'updated_at',
     ];
 

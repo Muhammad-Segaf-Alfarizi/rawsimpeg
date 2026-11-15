@@ -2,6 +2,7 @@
 <?php $this->section('content') ?>
 
 <?php
+$canEdit = $can_edit ?? (session()->get('role') !== 'kepala' || ($nip ?? '') === session()->get('nip'));
 $totalWt = 0;
 foreach ($abkList as $item) {
     $wm = (float) ($item['waktu_penyelesaian'] ?? $item['norma_waktu'] ?? 0);
@@ -18,9 +19,11 @@ $efektivitas = ($totalWt > 0) ? min(100, round(($totalWt / 75000) * 100, 1)) : 0
             <h4 style="margin-bottom:4px;"><?= esc($pegawai['nama'] ?? '-') ?></h4>
             <p style="color:var(--text-muted);font-size:13px;margin:0;">NIP: <?= esc($nip) ?></p>
         </div>
+        <?php if ($canEdit): ?>
         <button type="button" class="btn-primary-dark" data-toggle="modal" data-target="#modalTambahAbk">
             <i class="fas fa-plus"></i> Tambah Uraian Tugas
         </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -56,7 +59,7 @@ $efektivitas = ($totalWt > 0) ? min(100, round(($totalWt / 75000) * 100, 1)) : 0
                         <th style="width:10%;text-align:center;">Waktu (Menit)</th>
                         <th style="width:10%;text-align:center;">Volume Kerja</th>
                         <th style="width:12%;text-align:center;">Total Menit</th>
-                        <th style="width:10%;text-align:center;">Aksi</th>
+                        <?php if ($canEdit): ?><th style="width:10%;text-align:center;">Aksi</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,6 +77,7 @@ $efektivitas = ($totalWt > 0) ? min(100, round(($totalWt / 75000) * 100, 1)) : 0
                         <td style="text-align:center;"><?= $waktuMenit > 0 ? number_format($waktuMenit, 0, ',', '.') : '0' ?></td>
                         <td style="text-align:center;"><?= $volumeKerja > 0 ? number_format($volumeKerja, 0, ',', '.') : '0' ?></td>
                         <td style="text-align:center;color:var(--accent-light);font-weight:600;"><?= number_format($totalMenit, 0, ',', '.') ?></td>
+                        <?php if ($canEdit): ?>
                         <td style="text-align:center;white-space:nowrap;">
                             <button type="button" class="btn-warning-dark btn-sm-custom" onclick="editAbk(<?= htmlspecialchars(json_encode([
                                 'id_abk'             => $a['id_abk'],
@@ -88,6 +92,7 @@ $efektivitas = ($totalWt > 0) ? min(100, round(($totalWt / 75000) * 100, 1)) : 0
                                 <i class="fas fa-trash"></i>
                             </a>
                         </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -96,7 +101,7 @@ $efektivitas = ($totalWt > 0) ? min(100, round(($totalWt / 75000) * 100, 1)) : 0
                     <tr>
                         <td colspan="5" style="padding:12px 16px;text-align:right;font-weight:700;color:var(--text-primary);font-size:13px;">TOTAL MENIT BEBAN KERJA</td>
                         <td style="padding:12px 16px;text-align:center;font-weight:800;color:var(--accent);font-size:15px;"><?= number_format($totalWt, 0, ',', '.') ?></td>
-                        <td></td>
+                        <?php if ($canEdit): ?><td></td><?php endif; ?>
                     </tr>
                 </tfoot>
                 <?php endif; ?>
@@ -105,6 +110,7 @@ $efektivitas = ($totalWt > 0) ? min(100, round(($totalWt / 75000) * 100, 1)) : 0
     </div>
 </div>
 
+<?php if ($canEdit): ?>
 <!-- MODAL TAMBAH -->
 <div class="modal fade" id="modalTambahAbk" tabindex="-1">
     <div class="modal-dialog modal-lg"><div class="modal-content">
@@ -201,8 +207,10 @@ $efektivitas = ($totalWt > 0) ? min(100, round(($totalWt / 75000) * 100, 1)) : 0
         </form>
     </div></div>
 </div>
+<?php endif; ?>
 <?php $this->endSection() ?>
 <?php $this->section('scripts') ?>
+<?php if ($canEdit): ?>
 <script>
 function calcAdd() {
     var v = parseFloat(document.getElementById('addVol').value) || 0;
@@ -224,4 +232,5 @@ function editAbk(data) {
     $('#modalEditAbk').modal('show');
 }
 </script>
+<?php endif; ?>
 <?php $this->endSection() ?>

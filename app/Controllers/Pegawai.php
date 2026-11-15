@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Models\PegawaiModel;
 use App\Models\RiwayatStatusModel;
-use App\Libraries\GDriveLibrary;
 
 class Pegawai extends BaseController
 {
@@ -168,7 +167,7 @@ class Pegawai extends BaseController
             return view('pegawai/form_tambah', ['errors' => $this->validator->getErrors()]);
         }
 
-        $skFields = ['sk_cpns', 'sk_pns', 'sk_tukin', 'sk_jabatan_terakhir', 'sk_pak', 'skp_terakhir'];
+        $skFields = ['sk_cpns', 'sk_pns', 'sk_tukin', 'sk_kgb', 'sk_jabatan_terakhir', 'sk_pak', 'skp_terakhir'];
         $paths    = [];
 
         foreach ($skFields as $field) {
@@ -201,6 +200,7 @@ class Pegawai extends BaseController
             'sk_cpns'             => $paths['sk_cpns'],
             'sk_pns'              => $paths['sk_pns'],
             'sk_tukin'            => $paths['sk_tukin'],
+            'sk_kgb'              => $paths['sk_kgb'],
             'sk_jabatan_terakhir' => $paths['sk_jabatan_terakhir'],
             'sk_pak'              => $paths['sk_pak'],
             'skp_terakhir'        => $paths['skp_terakhir'],
@@ -249,7 +249,7 @@ class Pegawai extends BaseController
         ];
 
         // Proses upload file SK
-        $skFields = ['sk_cpns', 'sk_pns', 'sk_tukin', 'sk_jabatan_terakhir', 'sk_pak', 'skp_terakhir'];
+        $skFields = ['sk_cpns', 'sk_pns', 'sk_tukin', 'sk_kgb', 'sk_jabatan_terakhir', 'sk_pak', 'skp_terakhir'];
         foreach ($skFields as $field) {
             $file = $this->request->getFile($field);
             if ($file && $file->isValid() && ! $file->hasMoved()) {
@@ -273,19 +273,25 @@ class Pegawai extends BaseController
         return redirect()->to('/dashboard/super-admin')->with('success', 'Data pegawai berhasil dihapus.');
     }
 
-    // ─── UPLOAD SK MANDIRI (Pegawai/Admin/Super Admin) ────────────────────────
+    // ─── UPLOAD SK MANDIRI (Pegawai/Kepala milik sendiri, Admin/Super Admin) ─
     public function uploadSk(string $nip)
     {
         $role       = session()->get('role');
         $nipSession = session()->get('nip');
 
+        // Proteksi: kepala hanya bisa upload SK miliknya sendiri
+        if ($role === 'kepala' && $nip !== $nipSession) {
+            return redirect()->to('/pegawai/profil/' . urlencode($nip))
+                ->with('error', 'Anda hanya dapat mengupload dokumen SK milik Anda sendiri.');
+        }
+
         // Proteksi: pegawai hanya bisa upload SK miliknya sendiri
         if ($role === 'pegawai' && $nip !== $nipSession) {
-            return redirect()->to('/pegawai/profil/' . $nipSession)
+            return redirect()->to('/pegawai/profil/' . urlencode((string) $nipSession))
                 ->with('error', 'Anda tidak memiliki izin mengupload SK pegawai lain.');
         }
 
-        $allowedFields = ['sk_cpns', 'sk_pns', 'sk_pak', 'sk_tukin', 'sk_jabatan_terakhir', 'skp_terakhir'];
+        $allowedFields = ['sk_cpns', 'sk_pns', 'sk_pak', 'sk_tukin', 'sk_kgb', 'sk_jabatan_terakhir', 'skp_terakhir'];
         $fieldUpload   = $this->request->getPost('field_sk');
 
         if (! in_array($fieldUpload, $allowedFields)) {
@@ -311,30 +317,32 @@ class Pegawai extends BaseController
                 ->with('error', 'Ukuran file melebihi batas 5MB.');
         }
 
-        // Ambil data pegawai untuk cek URL lama
-        $pegawai  = $this->pegawaiModel->findByNip($nip);
-        $oldUrl   = $pegawai[$fieldUpload] ?? null;
+        // Ambil data pegawai untuk cek URL lama & nama folder pegawai
+        $pegawai     = $this->pegawaiModel->findByNip($nip);
+        $oldUrl      = $pegawai[$fieldUpload] ?? null;
+        $namaPegawai = $this->resolveEmployeeFolderName($this->pegawaiModel, $nip, $pegawai);
 
-        // Upload ke Google Drive
+        // Upload ke Google Drive (gdrive.folderIdPegawai -> Nama Pegawai -> Tahun Aktif)
         try {
-            $gdrive  = new GDriveLibrary();
-
-            // Hapus file lama di GDrive jika ada dan bukan path lokal
-            if ($oldUrl && str_starts_with($oldUrl, 'https://')) {
-                $gdrive->delete($oldUrl);
-            }
+            $gdrive         = $this->createGDrive();
+            $targetFolderId = $gdrive->getOrCreateEmployeeYearFolder($namaPegawai);
 
             $fileName = $nip . '_' . $fieldUpload . '_' . time() . '.' . $ext;
             $fileUrl  = $gdrive->upload(
                 $file->getTempName(),
                 $fileName,
                 $file->getMimeType(),
-                env('gdrive.folderIdPegawai')
+                $targetFolderId
             );
 
             if ($fileUrl === false) {
                 return redirect()->to('/pegawai/profil/' . urlencode($nip))
                     ->with('error', 'Gagal mengunggah file ke Google Drive. Coba lagi.');
+            }
+
+            // Hapus file lama di GDrive setelah upload baru berhasil
+            if ($oldUrl && str_starts_with($oldUrl, 'https://')) {
+                $gdrive->delete($oldUrl);
             }
         } catch (\Exception $e) {
             log_message('error', 'uploadSk Error: ' . $e->getMessage());
@@ -350,6 +358,7 @@ class Pegawai extends BaseController
             'sk_pns'              => 'SK PNS',
             'sk_pak'              => 'SK PAK',
             'sk_tukin'            => 'SK TUKIN',
+            'sk_kgb'              => 'SK KGB Terakhir',
             'sk_jabatan_terakhir' => 'SK Jabatan Terakhir',
             'skp_terakhir'        => 'SKP Terakhir',
         ];

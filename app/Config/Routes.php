@@ -25,7 +25,7 @@ $routes->post('/pegawai/tambah',                  'Pegawai::simpan',      ['filt
 $routes->get('/pegawai/edit/(:segment)',           'Pegawai::edit/$1',     ['filter' => 'role:super_admin,admin']);
 $routes->post('/pegawai/edit/(:segment)',          'Pegawai::update/$1',   ['filter' => 'role:super_admin,admin']);
 $routes->get('/pegawai/hapus/(:segment)',          'Pegawai::hapus/$1',    ['filter' => 'role:super_admin,admin']);
-$routes->post('/pegawai/upload-sk/(:segment)',     'Pegawai::uploadSk/$1', ['filter' => 'auth']);
+$routes->post('/pegawai/upload-sk/(:segment)',     'Pegawai::uploadSk/$1', ['filter' => 'role:super_admin,admin,kepala,pegawai']);
 
 // ─── USER ─────────────────────────────────────────────────────────────────────
 $routes->get('/user/tambah',                    'User::tambah',             ['filter' => 'role:super_admin']);
@@ -36,36 +36,36 @@ $routes->post('/user/edit-password/(:segment)', 'User::updatePassword/$1',  ['fi
 
 // ─── DIKLAT ───────────────────────────────────────────────────────────────────
 $routes->get('/diklat/(:segment)',               'Diklat::index/$1',     ['filter' => 'auth']);
-$routes->get('/diklat/tambah/(:segment)',         'Diklat::tambah/$1',    ['filter' => 'auth']);
-$routes->post('/diklat/simpan/(:segment)',        'Diklat::simpan/$1',    ['filter' => 'auth']);
-$routes->get('/diklat/edit/(:segment)/(:num)',    'Diklat::edit/$1/$2',   ['filter' => 'auth']);
-$routes->post('/diklat/update/(:segment)/(:num)', 'Diklat::update/$1/$2', ['filter' => 'auth']);
-$routes->get('/diklat/hapus/(:segment)/(:num)',   'Diklat::hapus/$1/$2',  ['filter' => 'auth']);
+$routes->get('/diklat/tambah/(:segment)',         'Diklat::tambah/$1',    ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/diklat/simpan/(:segment)',        'Diklat::simpan/$1',    ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/diklat/edit/(:segment)/(:num)',    'Diklat::edit/$1/$2',   ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/diklat/update/(:segment)/(:num)', 'Diklat::update/$1/$2', ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/diklat/hapus/(:segment)/(:num)',   'Diklat::hapus/$1/$2',  ['filter' => 'role:super_admin,admin,kepala,pegawai']);
 
 // ─── PENGHARGAAN ──────────────────────────────────────────────────────────────
 $routes->get('/penghargaan/(:segment)',               'Penghargaan::index/$1',     ['filter' => 'auth']);
-$routes->get('/penghargaan/tambah/(:segment)',         'Penghargaan::tambah/$1',    ['filter' => 'auth']);
-$routes->post('/penghargaan/simpan/(:segment)',        'Penghargaan::simpan/$1',    ['filter' => 'auth']);
-$routes->get('/penghargaan/edit/(:segment)/(:num)',    'Penghargaan::edit/$1/$2',   ['filter' => 'auth']);
-$routes->post('/penghargaan/update/(:segment)/(:num)', 'Penghargaan::update/$1/$2', ['filter' => 'auth']);
-$routes->get('/penghargaan/hapus/(:segment)/(:num)',   'Penghargaan::hapus/$1/$2',  ['filter' => 'auth']);
+$routes->get('/penghargaan/tambah/(:segment)',         'Penghargaan::tambah/$1',    ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/penghargaan/simpan/(:segment)',        'Penghargaan::simpan/$1',    ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/penghargaan/edit/(:segment)/(:num)',    'Penghargaan::edit/$1/$2',   ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/penghargaan/update/(:segment)/(:num)', 'Penghargaan::update/$1/$2', ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/penghargaan/hapus/(:segment)/(:num)',   'Penghargaan::hapus/$1/$2',  ['filter' => 'role:super_admin,admin,kepala,pegawai']);
 
 // ─── ABK ──────────────────────────────────────────────────────────────────────
 $routes->get('/abk/(:segment)',         'Abk::index/$1',    ['filter' => 'auth']);
-$routes->post('/abk/simpan/(:segment)', 'Abk::simpan/$1',   ['filter' => 'auth']);
-$routes->post('/abk/update/(:segment)', 'Abk::update/$1',   ['filter' => 'auth']);
-$routes->get('/abk/hapus/(:segment)/(:num)', 'Abk::hapus/$1/$2', ['filter' => 'auth']);
+$routes->post('/abk/simpan/(:segment)', 'Abk::simpan/$1',   ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/abk/update/(:segment)', 'Abk::update/$1',   ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/abk/hapus/(:segment)/(:num)', 'Abk::hapus/$1/$2', ['filter' => 'role:super_admin,admin,kepala,pegawai']);
 
 // ─── TNA ──────────────────────────────────────────────────────────────────────
 $routes->get('/tna/(:segment)',                      'Tna::index/$1',          ['filter' => 'auth']);
-$routes->post('/tna/simpan/(:segment)',               'Tna::simpan/$1',         ['filter' => 'auth']);
-$routes->post('/tna/update/(:segment)',               'Tna::update/$1',         ['filter' => 'auth']);
-$routes->get('/tna/hapus/(:segment)/(:num)',          'Tna::hapus/$1/$2',       ['filter' => 'auth']);
+$routes->post('/tna/simpan/(:segment)',               'Tna::simpan/$1',         ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/tna/update/(:segment)',               'Tna::update/$1',         ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/tna/hapus/(:segment)/(:num)',          'Tna::hapus/$1/$2',       ['filter' => 'role:super_admin,admin,kepala,pegawai']);
 $routes->post('/tna/persetujuan/(:segment)/(:num)',   'Tna::persetujuan/$1/$2', ['filter' => 'role:super_admin,admin']);
 
 // ─── MANAJEMEN KEGIATAN, JADWAL & REKAP PENUGASAN SDM BGTK 2026 ──────────────
-$routes->get('/kegiatan',                         'Penugasan::index',             ['filter' => 'role:super_admin,admin,kepala']);
-$routes->get('/kegiatan/rincian/(:num)',          'Penugasan::rincianKegiatan/$1',['filter' => 'role:super_admin,admin,kepala']);
+$routes->get('/kegiatan',                         'Penugasan::index',             ['filter' => 'role:super_admin,admin']);
+$routes->get('/kegiatan/rincian/(:num)',          'Penugasan::rincianKegiatan/$1',['filter' => 'role:super_admin,admin']);
 $routes->post('/kegiatan/simpan',                 'Penugasan::simpan',            ['filter' => 'role:super_admin,admin']);
 $routes->post('/kegiatan/update',                 'Penugasan::update',            ['filter' => 'role:super_admin,admin']);
 $routes->get('/kegiatan/hapus/(:num)',            'Penugasan::hapus/$1',          ['filter' => 'role:super_admin,admin']);
@@ -76,9 +76,9 @@ $routes->get('/kegiatan/penugasan/hapus/(:num)',  'Penugasan::hapusPenugasan/$1'
 $routes->post('/kegiatan/penugasan/hapus/(:num)', 'Penugasan::hapusPenugasan/$1', ['filter' => 'role:super_admin,admin']);
 $routes->post('/kegiatan/penugasan/bulk',         'Penugasan::plotBulk',          ['filter' => 'role:super_admin,admin']);
 
-$routes->get('/jadwal-penugasan',                    'Penugasan::jadwal',            ['filter' => 'role:super_admin,admin,kepala']);
+$routes->get('/jadwal-penugasan',                    'Penugasan::jadwal',            ['filter' => 'role:super_admin,admin']);
 $routes->get('/jadwal-penugasan/cuti/list',          'Penugasan::listCuti',          ['filter' => 'auth']);
 $routes->post('/jadwal-penugasan/cuti/simpan',       'Penugasan::simpanCuti',        ['filter' => 'role:super_admin,admin']);
 $routes->post('/jadwal-penugasan/cuti/hapus/(:num)', 'Penugasan::hapusCuti/$1',      ['filter' => 'role:super_admin,admin']);
-$routes->get('/rekap-penugasan',                     'Penugasan::rekap',             ['filter' => 'role:super_admin,admin,kepala']);
+$routes->get('/rekap-penugasan',                     'Penugasan::rekap',             ['filter' => 'role:super_admin,admin']);
 $routes->get('/rekap-penugasan/detail/(:any)',       'Penugasan::detailPegawai/$1',  ['filter' => 'auth']);

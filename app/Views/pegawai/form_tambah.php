@@ -83,6 +83,7 @@
                     ['sk_cpns', 'SK CPNS', 'SMPT Terakhir'],
                     ['sk_pns',  'SK PNS',  'SK PPPK'],
                     ['sk_tukin','SK Tukin', 'SK Tukin ⚠️ (opsional)'],
+                    ['sk_kgb',  'SK KGB Terakhir', ''],
                     ['sk_jabatan_terakhir', 'SK Jabatan Terakhir', 'SK Jabatan Terakhir'],
                     ['sk_pak',  'SK PAK',  'Dokumen Kontrak Terakhir'],
                     ['skp_terakhir', 'SKP Terakhir', 'SKP Terakhir'],
@@ -108,7 +109,13 @@
 document.querySelector('select[name="status_pegawai"]').addEventListener('change', function() {
     const isPppk = this.value === 'PPPK';
     document.querySelectorAll('[data-sk-field]').forEach(label => {
-        label.textContent = isPppk ? label.dataset.labelPppk : label.dataset.labelPns;
+        const field = label.dataset.skField;
+        // SK KGB hanya untuk PNS — sembunyikan seluruh form-group jika PPPK
+        if (field === 'sk_kgb') {
+            label.closest('.form-group').style.display = isPppk ? 'none' : '';
+        } else {
+            label.textContent = isPppk ? label.dataset.labelPppk : label.dataset.labelPns;
+        }
     });
 });
 </script>

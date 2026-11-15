@@ -1,7 +1,10 @@
 <?php $this->extend('layouts/main') ?>
 <?php $this->section('content') ?>
 
-<?php $role = session()->get('role'); ?>
+<?php
+$role    = session()->get('role');
+$canEdit = $can_edit ?? ($role !== 'kepala' || ($nip ?? '') === session()->get('nip'));
+?>
 
 <?php if ($role === 'pegawai'): ?>
 <div class="alert-dark alert-info-dark" style="margin-bottom:20px;">
@@ -27,9 +30,11 @@
             <h4 style="margin-bottom:4px;"><i class="fas fa-brain" style="color:var(--accent);margin-right:8px;"></i><?= esc($pegawai['nama'] ?? '-') ?></h4>
             <p style="color:var(--text-muted);font-size:13px;margin:0;">NIP: <?= esc($nip) ?> &mdash; Training Needs Analysis (TNA)</p>
         </div>
+        <?php if ($canEdit): ?>
         <button type="button" class="btn-primary-dark" data-toggle="modal" data-target="#modalTambahTna">
             <i class="fas fa-plus"></i> Tambah Usulan Pelatihan
         </button>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -48,7 +53,7 @@
                         <th style="text-align:center;">Prioritas</th>
                         <th style="text-align:center;">Status</th>
                         <th style="text-align:center;">Persetujuan</th>
-                        <th style="text-align:center;width:180px;">Aksi</th>
+                        <th style="text-align:center;width:<?= $canEdit ? '180px' : '90px' ?>;"><?= $canEdit ? 'Aksi' : 'Detail' ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -81,7 +86,7 @@
                         <td style="text-align:center;"><?= $sBadge ?></td>
                         <td style="text-align:center;"><?= $pBadge ?></td>
                         <td style="text-align:center;white-space:nowrap;">
-                            <?php if (($t['status_persetujuan'] ?? '') === 'Menunggu Persetujuan' && in_array($role, ['super_admin', 'admin'])): ?>
+                            <?php if ($canEdit && ($t['status_persetujuan'] ?? '') === 'Menunggu Persetujuan' && in_array($role, ['super_admin', 'admin'])): ?>
                             <form action="<?= base_url('tna/persetujuan/' . urlencode($nip) . '/' . $t['id_tna']) ?>" method="POST" class="d-inline">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="aksi" value="Disetujui">
@@ -98,8 +103,9 @@
                             </form>
                             <?php endif; ?>
                             <button class="btn btn-info btn-sm" onclick="detailTna(<?= $tData ?>)" title="Detail">
-                                <i class="fas fa-eye"></i>
+                                <i class="fas fa-eye"></i><?= $canEdit ? '' : ' Detail' ?>
                             </button>
+                            <?php if ($canEdit): ?>
                             <button class="btn btn-warning btn-sm text-dark" onclick="editTna(<?= $tData ?>)" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -107,6 +113,7 @@
                                class="btn btn-danger btn-sm confirm-delete" title="Hapus">
                                 <i class="fas fa-trash"></i>
                             </a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -116,6 +123,7 @@
     </div>
 </div>
 
+<?php if ($canEdit): ?>
 <!-- ===================================================================== -->
 <!-- MODAL TAMBAH TNA                                                       -->
 <!-- ===================================================================== -->
@@ -333,6 +341,7 @@
         </form>
     </div></div>
 </div>
+<?php endif; ?>
 
 <!-- ===================================================================== -->
 <!-- MODAL DETAIL TNA (View Only)                                           -->
@@ -378,6 +387,7 @@
 <?php $this->endSection() ?>
 <?php $this->section('scripts') ?>
 <script>
+<?php if ($canEdit): ?>
 function setSelect(id, val) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -411,6 +421,7 @@ function editTna(d) {
     }
     $('#modalEditTna').modal('show');
 }
+<?php endif; ?>
 
 function detailTna(d) {
     document.getElementById('det_kompetensi').innerText   = d.kompetensi_dibutuhkan   || '-';
@@ -447,6 +458,7 @@ function detailTna(d) {
     $('#modalDetailTna').modal('show');
 }
 
+<?php if ($canEdit): ?>
 // Konfirmasi hapus
 document.querySelectorAll('.confirm-delete').forEach(function(el) {
     el.addEventListener('click', function(e) {
@@ -455,5 +467,6 @@ document.querySelectorAll('.confirm-delete').forEach(function(el) {
         }
     });
 });
+<?php endif; ?>
 </script>
 <?php $this->endSection() ?>

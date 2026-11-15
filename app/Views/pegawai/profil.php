@@ -6,8 +6,9 @@
 $__isPppkCheck = ($data['status_pegawai'] ?? '') === 'PPPK';
 $__skRequired  = ['sk_cpns', 'sk_pns', 'sk_pak', 'sk_jabatan_terakhir', 'skp_terakhir'];
 if (! $__isPppkCheck) {
-    // PNS: sk_tukin wajib
+    // PNS: sk_tukin dan sk_kgb wajib
     $__skRequired[] = 'sk_tukin';
+    $__skRequired[] = 'sk_kgb';
 }
 // PPPK: sk_tukin opsional, tidak masuk daftar wajib
 
@@ -21,6 +22,8 @@ foreach ($__skRequired as $__skField) {
 }
 // Hanya terapkan blur untuk role pegawai
 $__blokKartuPenugasan = ($role === 'pegawai' && ! $__skLengkap);
+$__isOwnProfile       = (session()->get('nip') === $nip);
+$__canUploadSk        = ($role === 'pegawai' || ($role === 'kepala' && $__isOwnProfile));
 
 $status    = $data['status'] ?? 'DK';
 $statusBadge = match($status) {
@@ -168,7 +171,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
         <div class="card-dark">
             <div class="card-header-dark" style="display:flex;justify-content:space-between;align-items:center;">
                 <h6><i class="fas fa-file-alt header-icon"></i> Dokumen SK</h6>
-                <?php if ($role === 'pegawai'): ?>
+                <?php if ($__canUploadSk): ?>
                 <button type="button" class="btn-primary-dark" style="padding:6px 12px;font-size:12px;" data-toggle="modal" data-target="#modalUploadSk">
                     <i class="fas fa-upload"></i> Upload SK Saya
                 </button>
@@ -185,6 +188,17 @@ function docLink($url, $label = 'Lihat Dokumen') {
                     'sk_jabatan_terakhir' => 'SK Jabatan Terakhir',
                     'skp_terakhir'        => 'SKP Terakhir',
                 ];
+                if (! $isPppk) {
+                    // SK KGB hanya untuk PNS, sisipkan setelah sk_tukin
+                    $skListNew = [];
+                    foreach ($skList as $k => $v) {
+                        $skListNew[$k] = $v;
+                        if ($k === 'sk_tukin') {
+                            $skListNew['sk_kgb'] = 'SK KGB Terakhir';
+                        }
+                    }
+                    $skList = $skListNew;
+                }
                 foreach ($skList as $fieldKey => $fieldLabel):
                     $skUrl = $data[$fieldKey] ?? null;
                     $fieldLabelPlain = strip_tags($fieldLabel);
@@ -193,7 +207,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
                     <span class="info-label"><?= $fieldLabel ?></span>
                     <span class="info-value" style="display:flex;align-items:center;gap:8px;">
                         <?= docLink($skUrl) ?>
-                        <?php if ($role === 'pegawai'): ?>
+                        <?php if ($__canUploadSk): ?>
                         <button type="button"
                             class="btn btn-sm" 
                             style="padding:2px 8px;font-size:11px;background:rgba(99,102,241,0.2);color:var(--accent-light);border:1px solid var(--accent);border-radius:4px;"
@@ -519,7 +533,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
     <?php endif; ?>
 </div>
 
-<?php if ($role === 'pegawai'): ?>
+<?php if ($__canUploadSk): ?>
 <!-- ===================================================================== -->
 <!-- MODAL UPLOAD SK MANDIRI                                                -->
 <!-- ===================================================================== -->
@@ -802,7 +816,7 @@ function muatDataAuditTrail(nip) {
         });
 }
 
-<?php if ($role === 'pegawai'): ?>
+<?php if ($__canUploadSk): ?>
 function openUploadSk(fieldKey, fieldLabel, currentUrl) {
     document.getElementById('field_sk_input').value   = fieldKey;
     document.getElementById('sk_label_display').textContent = fieldLabel;

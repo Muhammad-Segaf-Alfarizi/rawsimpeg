@@ -75,6 +75,7 @@
                     ['sk_cpns', $isPppkEdit ? 'SMPT Terakhir' : 'SK CPNS'],
                     ['sk_pns',  $isPppkEdit ? 'SK PPPK' : 'SK PNS'],
                     ['sk_tukin', $isPppkEdit ? 'SK Tukin ⚠️ (opsional)' : 'SK Tukin'],
+                    ...(!$isPppkEdit ? [['sk_kgb', 'SK KGB Terakhir']] : []),
                     ['sk_jabatan_terakhir', 'SK Jabatan Terakhir'],
                     ['sk_pak', $isPppkEdit ? 'Dokumen Kontrak Terakhir' : 'SK PAK'],
                     ['skp_terakhir', 'SKP Terakhir'],

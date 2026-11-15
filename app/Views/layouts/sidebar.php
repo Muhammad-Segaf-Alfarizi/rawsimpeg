@@ -76,6 +76,7 @@ $cur  = service('uri')->getSegments();
             </div>
         <?php endif; ?>
 
+        <?php if (in_array($role, ['super_admin', 'admin'], true)): ?>
         <!-- MENU MONITORING 2026 -->
         <div class="nav-label" style="margin-top: 15px;">Monitoring 2026</div>
         <div class="nav-item">
@@ -88,6 +89,7 @@ $cur  = service('uri')->getSegments();
                 <span class="nav-icon"><i class="fas fa-chart-bar"></i></span> Rekap Penugasan
             </a>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="sidebar-footer">

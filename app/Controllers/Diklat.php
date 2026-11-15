@@ -18,17 +18,26 @@ class Diklat extends BaseController
 
     public function index(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeViewAccess($nip, 'diklat')) {
+            return $redirect;
+        }
+        $role = session()->get('role');
 
         $pegawai = $this->pegawaiModel->findByNip($nip);
         if (! $pegawai) {
-            return redirect()->to('/dashboard/super-admin');
+            $dash = match ($role) {
+                'admin'  => '/dashboard/admin',
+                'kepala' => '/dashboard/kepala',
+                default  => '/dashboard/super-admin',
+            };
+            return redirect()->to($dash);
         }
 
         return view('diklat/index', [
             'nip'        => $nip,
             'pegawai'    => $pegawai,
             'diklatList' => $this->diklatModel->getByNip($nip),
+            'can_edit'   => $this->canModifyEmployeeData($nip),
             'back_url'   => 'pegawai/profil/' . urlencode($nip),
             'page_title' => 'Daftar Diklat — ' . ($pegawai['nama'] ?? $nip),
             'title_icon' => 'fas fa-graduation-cap',
@@ -37,7 +46,9 @@ class Diklat extends BaseController
 
     public function tambah(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'diklat')) {
+            return $redirect;
+        }
         $pegawai = $this->pegawaiModel->findByNip($nip);
 
         return view('diklat/form', [
@@ -49,28 +60,34 @@ class Diklat extends BaseController
 
     public function simpan(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'diklat')) {
+            return $redirect;
+        }
 
         $namaDiklat = trim($this->request->getPost('nama_diklat') ?? '');
         if (empty($namaDiklat)) {
-            return redirect()->to('/diklat/tambah/' . $nip)->with('error', 'Nama diklat tidak boleh kosong.');
+            return redirect()->to('/diklat/tambah/' . urlencode($nip))->with('error', 'Nama diklat tidak boleh kosong.');
         }
 
         $this->diklatModel->save(['nip' => $nip, 'nama_diklat' => $namaDiklat]);
 
-        return redirect()->to('/diklat/' . $nip)->with('success', 'Data diklat berhasil ditambahkan.');
+        return redirect()->to('/diklat/' . urlencode($nip))->with('success', 'Data diklat berhasil ditambahkan.');
     }
 
     public function edit(string $nip, int $id)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'diklat')) {
+            return $redirect;
+        }
 
-        $pegawai   = $this->pegawaiModel->findByNip($nip);
-        $dataEdit  = $this->diklatModel->find($id);
+        $dataEdit = $this->findOwnedRecord($this->diklatModel, $id, $nip);
+        if (! $dataEdit) {
+            return redirect()->to('/diklat/' . urlencode($nip))->with('error', 'Data diklat tidak ditemukan.');
+        }
 
         return view('diklat/form', [
             'nip'      => $nip,
-            'pegawai'  => $pegawai,
+            'pegawai'  => $this->pegawaiModel->findByNip($nip),
             'dataEdit' => $dataEdit,
             'aksi'     => 'edit',
         ]);
@@ -78,32 +95,36 @@ class Diklat extends BaseController
 
     public function update(string $nip, int $id)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'diklat')) {
+            return $redirect;
+        }
+
+        if (! $this->findOwnedRecord($this->diklatModel, $id, $nip)) {
+            return redirect()->to('/diklat/' . urlencode($nip))->with('error', 'Data diklat tidak ditemukan.');
+        }
 
         $namaDiklat = trim($this->request->getPost('nama_diklat') ?? '');
         if (empty($namaDiklat)) {
-            return redirect()->to('/diklat/edit/' . $nip . '/' . $id)->with('error', 'Nama diklat tidak boleh kosong.');
+            return redirect()->to('/diklat/edit/' . urlencode($nip) . '/' . $id)->with('error', 'Nama diklat tidak boleh kosong.');
         }
 
         $this->diklatModel->update($id, ['nama_diklat' => $namaDiklat]);
 
-        return redirect()->to('/diklat/' . $nip)->with('success', 'Data diklat berhasil diperbarui.');
+        return redirect()->to('/diklat/' . urlencode($nip))->with('success', 'Data diklat berhasil diperbarui.');
     }
 
     public function hapus(string $nip, int $id)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'diklat')) {
+            return $redirect;
+        }
+
+        if (! $this->findOwnedRecord($this->diklatModel, $id, $nip)) {
+            return redirect()->to('/diklat/' . urlencode($nip))->with('error', 'Data diklat tidak ditemukan.');
+        }
+
         $this->diklatModel->delete($id);
 
-        return redirect()->to('/diklat/' . $nip)->with('success', 'Data diklat berhasil dihapus.');
-    }
-
-    private function checkAccess(string $nip): void
-    {
-        $role = session()->get('role');
-        if ($role === 'pegawai' && $nip !== session()->get('nip')) {
-            redirect()->to('/diklat/' . session()->get('nip'))->send();
-            exit;
-        }
+        return redirect()->to('/diklat/' . urlencode($nip))->with('success', 'Data diklat berhasil dihapus.');
     }
 }

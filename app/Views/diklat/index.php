@@ -1,6 +1,8 @@
 <?php $this->extend('layouts/main') ?>
 <?php $this->section('content') ?>
 
+<?php $canEdit = $can_edit ?? (session()->get('role') !== 'kepala' || ($nip ?? '') === session()->get('nip')); ?>
+
 <!-- Header -->
 <div class="card-dark" style="margin-bottom:20px;">
     <div class="card-body-dark" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
@@ -8,9 +10,11 @@
             <h4 style="margin-bottom:4px;"><?= esc($pegawai['nama'] ?? '-') ?></h4>
             <p style="color:var(--text-muted);font-size:13px;margin:0;">NIP: <?= esc($nip) ?></p>
         </div>
+        <?php if ($canEdit): ?>
         <a href="<?= base_url('diklat/tambah/' . urlencode($nip)) ?>" class="btn-primary-dark">
             <i class="fas fa-plus"></i> Tambah Diklat
         </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -22,13 +26,18 @@
         <div style="overflow-x:auto;">
             <table class="table-dark-custom auto-datatable" id="tblDiklat">
                 <thead>
-                    <tr><th>No.</th><th>Nama Diklat / Pelatihan</th><th style="text-align:center;">Aksi</th></tr>
+                    <tr>
+                        <th>No.</th>
+                        <th>Nama Diklat / Pelatihan</th>
+                        <?php if ($canEdit): ?><th style="text-align:center;">Aksi</th><?php endif; ?>
+                    </tr>
                 </thead>
                 <tbody>
                 <?php foreach ($diklatList as $i => $dk): ?>
                     <tr>
                         <td style="color:var(--text-muted);"><?= $i + 1 ?></td>
                         <td><?= esc($dk['nama_diklat']) ?></td>
+                        <?php if ($canEdit): ?>
                         <td style="text-align:center;width:140px;">
                             <a href="<?= base_url('diklat/edit/' . urlencode($nip) . '/' . $dk['id_daftar_diklat']) ?>" class="btn-warning-dark btn-sm-custom">
                                 <i class="fas fa-edit"></i> Edit
@@ -37,6 +46,7 @@
                                 <i class="fas fa-trash"></i> Hapus
                             </a>
                         </td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>

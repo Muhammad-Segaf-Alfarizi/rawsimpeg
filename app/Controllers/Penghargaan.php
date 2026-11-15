@@ -18,13 +18,16 @@ class Penghargaan extends BaseController
 
     public function index(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeViewAccess($nip, 'penghargaan')) {
+            return $redirect;
+        }
         $pegawai = $this->pegawaiModel->findByNip($nip);
 
         return view('penghargaan/index', [
             'nip'             => $nip,
             'pegawai'         => $pegawai,
             'penghargaanList' => $this->penghargaanModel->getByNip($nip),
+            'can_edit'        => $this->canModifyEmployeeData($nip),
             'back_url'        => 'pegawai/profil/' . urlencode($nip),
             'page_title'      => 'Penghargaan — ' . ($pegawai['nama'] ?? $nip),
             'title_icon'      => 'fas fa-award',
@@ -33,13 +36,17 @@ class Penghargaan extends BaseController
 
     public function tambah(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'penghargaan')) {
+            return $redirect;
+        }
         return view('penghargaan/form', ['nip' => $nip, 'pegawai' => $this->pegawaiModel->findByNip($nip), 'aksi' => 'tambah']);
     }
 
     public function simpan(string $nip)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'penghargaan')) {
+            return $redirect;
+        }
 
         $rules = [
             'nama_penghargaan' => 'required',
@@ -47,7 +54,7 @@ class Penghargaan extends BaseController
         ];
 
         if (! $this->validate($rules)) {
-            return redirect()->to('/penghargaan/tambah/' . $nip)->with('error', implode(', ', $this->validator->getErrors()));
+            return redirect()->to('/penghargaan/tambah/' . urlencode($nip))->with('error', implode(', ', $this->validator->getErrors()));
         }
 
         $this->penghargaanModel->save([
@@ -57,44 +64,57 @@ class Penghargaan extends BaseController
             'pemberi'          => $this->request->getPost('pemberi'),
         ]);
 
-        return redirect()->to('/penghargaan/' . $nip)->with('success', 'Penghargaan berhasil ditambahkan.');
+        return redirect()->to('/penghargaan/' . urlencode($nip))->with('success', 'Penghargaan berhasil ditambahkan.');
     }
 
     public function edit(string $nip, int $id)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'penghargaan')) {
+            return $redirect;
+        }
+
+        $dataEdit = $this->findOwnedRecord($this->penghargaanModel, $id, $nip);
+        if (! $dataEdit) {
+            return redirect()->to('/penghargaan/' . urlencode($nip))->with('error', 'Data penghargaan tidak ditemukan.');
+        }
+
         return view('penghargaan/form', [
             'nip'      => $nip,
             'pegawai'  => $this->pegawaiModel->findByNip($nip),
-            'dataEdit' => $this->penghargaanModel->find($id),
+            'dataEdit' => $dataEdit,
             'aksi'     => 'edit',
         ]);
     }
 
     public function update(string $nip, int $id)
     {
-        $this->checkAccess($nip);
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'penghargaan')) {
+            return $redirect;
+        }
+
+        if (! $this->findOwnedRecord($this->penghargaanModel, $id, $nip)) {
+            return redirect()->to('/penghargaan/' . urlencode($nip))->with('error', 'Data penghargaan tidak ditemukan.');
+        }
+
         $this->penghargaanModel->update($id, [
             'nama_penghargaan' => $this->request->getPost('nama_penghargaan'),
             'tahun'            => $this->request->getPost('tahun'),
             'pemberi'          => $this->request->getPost('pemberi'),
         ]);
-        return redirect()->to('/penghargaan/' . $nip)->with('success', 'Penghargaan berhasil diperbarui.');
+        return redirect()->to('/penghargaan/' . urlencode($nip))->with('success', 'Penghargaan berhasil diperbarui.');
     }
 
     public function hapus(string $nip, int $id)
     {
-        $this->checkAccess($nip);
-        $this->penghargaanModel->delete($id);
-        return redirect()->to('/penghargaan/' . $nip)->with('success', 'Penghargaan berhasil dihapus.');
-    }
-
-    private function checkAccess(string $nip): void
-    {
-        $role = session()->get('role');
-        if ($role === 'pegawai' && $nip !== session()->get('nip')) {
-            redirect()->to('/penghargaan/' . session()->get('nip'))->send();
-            exit;
+        if ($redirect = $this->guardEmployeeModifyAccess($nip, 'penghargaan')) {
+            return $redirect;
         }
+
+        if (! $this->findOwnedRecord($this->penghargaanModel, $id, $nip)) {
+            return redirect()->to('/penghargaan/' . urlencode($nip))->with('error', 'Data penghargaan tidak ditemukan.');
+        }
+
+        $this->penghargaanModel->delete($id);
+        return redirect()->to('/penghargaan/' . urlencode($nip))->with('success', 'Penghargaan berhasil dihapus.');
     }
 }
