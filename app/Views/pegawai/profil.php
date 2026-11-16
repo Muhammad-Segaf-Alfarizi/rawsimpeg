@@ -38,16 +38,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
 }
 ?>
 
-<?php if (session()->getFlashdata('success')): ?>
-<div class="alert-dark alert-success-dark" style="margin-bottom:16px;">
-    <i class="fas fa-check-circle"></i> <?= session()->getFlashdata('success') ?>
-</div>
-<?php endif; ?>
-<?php if (session()->getFlashdata('error')): ?>
-<div class="alert-dark alert-danger-dark" style="margin-bottom:16px;">
-    <i class="fas fa-exclamation-circle"></i> <?= session()->getFlashdata('error') ?>
-</div>
-<?php endif; ?>
+<?php /* Flash message success/error sudah ditampilkan oleh layouts/main.php */ ?>
 
 <!-- Header Profil -->
 <style>
@@ -172,7 +163,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
             <div class="card-header-dark" style="display:flex;justify-content:space-between;align-items:center;">
                 <h6><i class="fas fa-file-alt header-icon"></i> Dokumen SK</h6>
                 <?php if ($__canUploadSk): ?>
-                <button type="button" class="btn-primary-dark" style="padding:6px 12px;font-size:12px;" data-toggle="modal" data-target="#modalUploadSk">
+                <button type="button" class="btn-primary-dark" style="padding:6px 12px;font-size:12px;" onclick="openUploadSk('', '-', '')">
                     <i class="fas fa-upload"></i> Upload SK Saya
                 </button>
                 <?php endif; ?>
@@ -547,8 +538,18 @@ function docLink($url, $label = 'Lihat Dokumen') {
         </div>
         <form method="POST" action="<?= base_url('pegawai/upload-sk/' . urlencode($nip)) ?>" enctype="multipart/form-data">
             <?= csrf_field() ?>
-            <input type="hidden" name="field_sk" id="field_sk_input">
             <div class="modal-body">
+
+                <!-- Pilih jenis dokumen -->
+                <div class="form-group">
+                    <label class="font-weight-bold">Jenis Dokumen: <span class="text-danger">*</span></label>
+                    <select name="field_sk" id="field_sk_input" class="form-control" required>
+                        <option value="">-- Pilih Jenis Dokumen --</option>
+                        <?php foreach ($skList as $optKey => $optLabel): ?>
+                        <option value="<?= esc($optKey, 'attr') ?>" data-url="<?= esc($data[$optKey] ?? '', 'attr') ?>"><?= esc(strip_tags($optLabel)) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
                 <!-- Info dokumen yang dipilih -->
                 <div class="alert alert-info" id="sk_info_box" style="border-radius:8px;margin-bottom:16px;">
@@ -835,6 +836,19 @@ function openUploadSk(fieldKey, fieldLabel, currentUrl) {
 
     $('#modalUploadSk').modal('show');
 }
+
+document.getElementById('field_sk_input')?.addEventListener('change', function() {
+    var opt = this.options[this.selectedIndex];
+    document.getElementById('sk_label_display').textContent = this.value ? opt.text : '-';
+    var url = this.value ? (opt.getAttribute('data-url') || '') : '';
+    var currentBox = document.getElementById('sk_current_file');
+    if (url !== '') {
+        currentBox.style.display = 'block';
+        document.getElementById('sk_current_link').href = url;
+    } else {
+        currentBox.style.display = 'none';
+    }
+});
 
 document.getElementById('file_sk_input')?.addEventListener('change', function() {
     var preview  = document.getElementById('file_preview');
