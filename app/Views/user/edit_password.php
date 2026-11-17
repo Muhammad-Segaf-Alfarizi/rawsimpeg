@@ -2,14 +2,18 @@
 <?php $this->section('content') ?>
 
 <?php
-$isHashed = $is_hashed ?? false;
-$isSuper  = $is_super ?? (session()->get('role') === 'super_admin');
-$pwdHash  = (string) ($user['password'] ?? '');
+$isHashed       = $is_hashed ?? false;
+$isSuper        = $is_super ?? (session()->get('role') === 'super_admin');
+$mustChange     = $must_change ?? (bool) session()->get('must_change_password');
+$showPopupAlert = $show_popup_alert ?? false;
+$alertMessage   = $alert_message ?? '';
+$pwdRequired    = (! $isSuper || $mustChange);
+$pwdHash        = (string) ($user['password'] ?? '');
 ?>
 
 <div class="card-dark" style="max-width:580px;margin:0 auto;">
     <div class="card-header-dark">
-        <h5><i class="fas fa-key header-icon"></i> <?= $isSuper ? 'Edit Akun &amp; Password' : 'Ubah Password' ?> &mdash; <?= esc($user['nama'] ?? '') ?></h5>
+        <h5><i class="fas fa-key header-icon"></i> <?= $mustChange ? 'Buat Password Baru' : ($isSuper ? 'Edit Akun &amp; Password' : 'Ubah Password') ?> &mdash; <?= esc($user['nama'] ?? '') ?></h5>
         <?php if ($isHashed): ?>
             <span class="badge-custom badge-success"><i class="fas fa-lock"></i> Ter-enkripsi (Bcrypt)</span>
         <?php else: ?>
@@ -17,6 +21,18 @@ $pwdHash  = (string) ($user['password'] ?? '');
         <?php endif; ?>
     </div>
     <div class="card-body-dark">
+        <?php if ($mustChange || $alertMessage !== ''): ?>
+        <div class="alert-dark" style="background:rgba(245,158,11,0.14);border:1px solid var(--warning);color:var(--warning);padding:14px 16px;border-radius:var(--radius-sm);margin-bottom:16px;display:flex;align-items:flex-start;gap:12px;">
+            <i class="fas fa-exclamation-triangle" style="font-size:18px;margin-top:2px;flex-shrink:0;"></i>
+            <div>
+                <div style="font-weight:700;margin-bottom:3px;">Wajib Membuat Password Baru</div>
+                <div style="font-size:13px;line-height:1.45;">
+                    <?= esc($alertMessage !== '' ? $alertMessage : 'Password akun Anda saat ini masih sama dengan NIP. Silakan masukkan password baru (minimal 6 karakter dan berbeda dari NIP) untuk melanjutkan.') ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <?php if (!empty($errors)): ?>
         <div class="alert-dark alert-danger-dark"><i class="fas fa-exclamation-circle"></i> <?= implode('<br>', $errors) ?></div>
         <?php endif; ?>
@@ -73,22 +89,22 @@ $pwdHash  = (string) ($user['password'] ?? '');
 
             <div class="grid grid-2">
                 <div class="form-group">
-                    <label class="form-label-dark">Password Baru <?= $isSuper ? '<span style="color:var(--text-muted);font-weight:400;">(Opsional)</span>' : '*' ?></label>
+                    <label class="form-label-dark">Password Baru <?= (! $pwdRequired) ? '<span style="color:var(--text-muted);font-weight:400;">(Opsional)</span>' : '*' ?></label>
                     <div style="position:relative;">
                         <input type="password" name="password" id="pwdNew" class="form-control-dark"
-                               placeholder="<?= $isSuper ? 'Kosongkan jika tetap' : 'Min. 6 karakter' ?>"
-                               style="padding-right:40px;" <?= $isSuper ? '' : 'required' ?> oninput="cekKekuatanPwd(this.value)">
+                               placeholder="<?= (! $pwdRequired) ? 'Kosongkan jika tetap' : 'Min. 6 karakter (berbeda dari NIP)' ?>"
+                               style="padding-right:40px;" <?= $pwdRequired ? 'required autofocus' : '' ?> oninput="cekKekuatanPwd(this.value)">
                         <button type="button" onclick="togglePwd('pwdNew','eyeNew')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;">
                             <i class="fas fa-eye" id="eyeNew"></i>
                         </button>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label-dark">Konfirmasi Password <?= $isSuper ? '' : '*' ?></label>
+                    <label class="form-label-dark">Konfirmasi Password <?= (! $pwdRequired) ? '' : '*' ?></label>
                     <div style="position:relative;">
                         <input type="password" name="password_confirm" id="pwdConf" class="form-control-dark"
                                placeholder="Ulangi password baru"
-                               style="padding-right:40px;" <?= $isSuper ? '' : 'required' ?>>
+                               style="padding-right:40px;" <?= $pwdRequired ? 'required' : '' ?>>
                         <button type="button" onclick="togglePwd('pwdConf','eyeConf')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;">
                             <i class="fas fa-eye" id="eyeConf"></i>
                         </button>
@@ -107,7 +123,9 @@ $pwdHash  = (string) ($user['password'] ?? '');
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
                 <div style="display:flex;gap:10px;">
                     <button type="submit" class="btn-primary-dark"><i class="fas fa-save"></i> Simpan Password</button>
+                    <?php if (! $mustChange): ?>
                     <a href="<?= base_url('pegawai/profil/' . urlencode($user['nip'] ?? '')) ?>" class="btn-back">Batal</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </form>
@@ -117,6 +135,12 @@ $pwdHash  = (string) ($user['password'] ?? '');
 <?php $this->endSection() ?>
 <?php $this->section('scripts') ?>
 <script>
+<?php if ($showPopupAlert): ?>
+window.addEventListener('DOMContentLoaded', function() {
+    alert(<?= json_encode($alertMessage !== '' ? $alertMessage : 'Silakan masukkan password baru terlebih dahulu untuk melanjutkan.', JSON_UNESCAPED_UNICODE) ?>);
+    document.getElementById('pwdNew')?.focus();
+});
+<?php endif; ?>
 function togglePwd(inputId, iconId) {
     var inp = document.getElementById(inputId);
     var ico = document.getElementById(iconId);

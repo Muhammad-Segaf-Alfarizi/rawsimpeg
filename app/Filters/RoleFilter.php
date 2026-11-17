@@ -19,6 +19,14 @@ class RoleFilter implements FilterInterface
             return redirect()->to('/login');
         }
 
+        if (session()->get('must_change_password')) {
+            $uriPath = trim($request->getUri()->getPath(), '/');
+            if (! str_contains($uriPath, 'user/edit-password/') && ! str_ends_with($uriPath, 'logout')) {
+                return redirect()->to('/user/edit-password/' . urlencode((string) session()->get('nip')))
+                    ->with('warning_password_default', 'Silakan masukkan password baru terlebih dahulu sebelum mengakses halaman lain.');
+            }
+        }
+
         $role = session()->get('role');
 
         // Cek apakah role user ada di daftar role yang diizinkan

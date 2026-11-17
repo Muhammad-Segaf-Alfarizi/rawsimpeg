@@ -2,28 +2,8 @@
 <?php $this->section('content') ?>
 
 <?php
-// --- Cek kelengkapan SK (hanya berlaku untuk role pegawai) ---
-$__isPppkCheck = ($data['status_pegawai'] ?? '') === 'PPPK';
-$__skRequired  = ['sk_cpns', 'sk_pns', 'sk_pak', 'sk_jabatan_terakhir', 'skp_terakhir'];
-if (! $__isPppkCheck) {
-    // PNS: sk_tukin dan sk_kgb wajib
-    $__skRequired[] = 'sk_tukin';
-    $__skRequired[] = 'sk_kgb';
-}
-// PPPK: sk_tukin opsional, tidak masuk daftar wajib
-
-$__skLengkap = true;
-$__skKurang  = [];
-foreach ($__skRequired as $__skField) {
-    if (empty($data[$__skField])) {
-        $__skLengkap = false;
-        $__skKurang[] = $__skField;
-    }
-}
-// Hanya terapkan blur untuk role pegawai
-$__blokKartuPenugasan = ($role === 'pegawai' && ! $__skLengkap);
-$__isOwnProfile       = (session()->get('nip') === $nip);
-$__canUploadSk        = ($role === 'pegawai' || ($role === 'kepala' && $__isOwnProfile));
+$__isOwnProfile = (session()->get('nip') === $nip);
+$__canUploadSk  = ($role === 'pegawai' || ($role === 'kepala' && $__isOwnProfile));
 
 $status    = $data['status'] ?? 'DK';
 $statusBadge = match($status) {
@@ -83,20 +63,6 @@ function docLink($url, $label = 'Lihat Dokumen') {
     .btn-filter-rekap { padding:5px 12px; font-size:11.5px; border-radius:6px; border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-secondary); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all .2s; }
     .btn-filter-rekap:hover { background:var(--bg-card-hover); color:var(--text-primary); }
     .btn-filter-rekap.active { background:var(--accent); color:#ffffff; border-color:var(--accent); }
-
-    /* Blur overlay untuk card yang diblokir karena SK belum lengkap */
-    .sk-locked-wrapper { position: relative; }
-    .sk-locked-wrapper .sk-locked-content { filter: blur(6px); pointer-events: none; user-select: none; }
-    .sk-locked-wrapper .sk-locked-overlay {
-        position: absolute; inset: 0; z-index: 10;
-        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-        background: rgba(15, 23, 42, 0.55); border-radius: var(--radius-sm);
-        padding: 32px 24px; text-align: center;
-    }
-    [data-theme="light"] .sk-locked-wrapper .sk-locked-overlay { background: rgba(255,255,255,0.70); }
-    .sk-locked-overlay i.lock-icon { font-size: 36px; color: var(--warning); }
-    .sk-locked-overlay .lock-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.5; max-width: 360px; }
-    .sk-locked-overlay .lock-sub { font-size: 12px; color: var(--text-muted); max-width: 340px; }
 </style>
 <div class="card-dark" style="margin-bottom:20px;">
     <div class="card-body-dark">
@@ -141,7 +107,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
     <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
 
         <!-- Data Pokok -->
-        <div class="card-dark">
+        <!-- <div class="card-dark">
             <div class="card-header-dark"><h6><i class="fas fa-user header-icon"></i> Data Pokok Pegawai</h6></div>
             <div class="card-body-dark">
                 <div class="info-row"><span class="info-label">Status Pegawai</span><span class="info-value"><?= esc($data['status_pegawai'] ?? '-') ?></span></div>
@@ -156,7 +122,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
                 <div class="info-row"><span class="info-label">SK KGB Terakhir</span><span class="info-value"><?= $kgb['terakhir'] ?></span></div>
                 <div class="info-row"><span class="info-label">SK KGB Berikutnya</span><span class="info-value" style="color:var(--warning);"><?= $kgb['berikutnya'] ?></span></div>
             </div>
-        </div>
+        </div> -->
 
         <!-- Dokumen SK -->
         <div class="card-dark">
@@ -244,15 +210,6 @@ function docLink($url, $label = 'Lihat Dokumen') {
         </div>
 
         <!-- Rekap Penugasan 2026 (Tabel Rekapitulasi Penugasan SDM 2026) -->
-        <?php if ($__blokKartuPenugasan): ?>
-        <div class="sk-locked-wrapper">
-            <div class="sk-locked-overlay">
-                <i class="fas fa-lock lock-icon"></i>
-                <div class="lock-text">Anda harus mengunggah semua Dokumen SK untuk dapat melihat Rekap Penugasan</div>
-                <div class="lock-sub">Silakan lengkapi dokumen SK di bagian Dokumen SK di atas</div>
-            </div>
-            <div class="sk-locked-content">
-        <?php endif; ?>
         <?php
         $pairs = [
             ['z1_tugas', 'z1_hari', 'dl'], ['z2_tugas', 'z2_hari', 'dl'], ['z3_tugas', 'z3_hari', 'dl'], ['z4_tugas', 'z4_hari', 'dl'],
@@ -391,10 +348,6 @@ function docLink($url, $label = 'Lihat Dokumen') {
                 </div>
             </div>
         </div>
-        <?php if ($__blokKartuPenugasan): ?>
-            </div><!-- /.sk-locked-content -->
-        </div><!-- /.sk-locked-wrapper -->
-        <?php endif; ?>
     </div>
 
     <!-- Kolom Kanan: Kalender Kedinasan & Rincian Penugasan 2026 -->
@@ -404,15 +357,6 @@ function docLink($url, $label = 'Lihat Dokumen') {
     $totalKegiatan = (int) ($rk['total_kegiatan'] ?? count($penList));
     $totalHariPen  = (int) ($rk['total_hari'] ?? array_sum(array_map(static fn ($x) => (int) ($x['jumlah_hari'] ?? 0), $penList)));
     ?>
-    <?php if ($__blokKartuPenugasan): ?>
-    <div class="sk-locked-wrapper">
-        <div class="sk-locked-overlay">
-            <i class="fas fa-lock lock-icon"></i>
-            <div class="lock-text">Anda harus mengunggah semua Dokumen SK untuk dapat melihat ini</div>
-            <div class="lock-sub">Silakan lengkapi dokumen SK di bagian Dokumen SK terlebih dahulu</div>
-        </div>
-        <div class="sk-locked-content">
-    <?php endif; ?>
     <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
         <div class="card-dark">
             <div class="card-header-dark">
@@ -518,10 +462,6 @@ function docLink($url, $label = 'Lihat Dokumen') {
             </div>
         </div>
     </div>
-    <?php if ($__blokKartuPenugasan): ?>
-        </div><!-- /.sk-locked-content -->
-    </div><!-- /.sk-locked-wrapper -->
-    <?php endif; ?>
 </div>
 
 <?php if ($__canUploadSk): ?>

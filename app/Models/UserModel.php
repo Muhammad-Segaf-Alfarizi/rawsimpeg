@@ -94,6 +94,45 @@ class UserModel extends Model
     }
 
     /**
+     * Cek apakah password user saat ini masih sama dengan NIP miliknya (password default).
+     */
+    public function isDefaultPassword(array $user): bool
+    {
+        $nip    = trim((string) ($user['nip'] ?? ''));
+        $stored = (string) ($user['password'] ?? '');
+
+        if ($nip === '' || $stored === '') {
+            return false;
+        }
+
+        return $this->verifyPassword($nip, $stored);
+    }
+
+    /**
+     * Reset seluruh password user di database menjadi sama dengan NIP masing-masing (di-hash Bcrypt).
+     * Mengembalikan jumlah akun yang diperbarui.
+     */
+    public function resetAllPasswordsToNip(): int
+    {
+        $users = $this->findAll();
+        $count = 0;
+
+        foreach ($users as $u) {
+            $nip = trim((string) ($u['nip'] ?? ''));
+            if ($nip === '') {
+                continue;
+            }
+            $hashed = $this->hashPassword($nip);
+            $this->db->table($this->table)
+                ->where($this->primaryKey, $u[$this->primaryKey])
+                ->update(['password' => $hashed]);
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
      * Enkripsi (hash) seluruh password di tabel user yang masih berformat plain-text.
      * Mengembalikan jumlah akun yang di-hash.
      */

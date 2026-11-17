@@ -8,8 +8,11 @@ class Auth extends BaseController
 {
     public function index()
     {
-        // Jika sudah login, redirect ke dashboard
+        // Jika sudah login, redirect ke halaman wajib ganti password atau dashboard
         if (session()->get('nip')) {
+            if (session()->get('must_change_password')) {
+                return redirect()->to('/user/edit-password/' . urlencode((string) session()->get('nip')));
+            }
             return $this->redirectByRole(session()->get('role'));
         }
 
@@ -37,13 +40,22 @@ class Auth extends BaseController
                         ]);
                     }
 
+                    $mustChangePassword = ($password === trim((string) $user['nip']))
+                        || $userModel->isDefaultPassword($user);
+
                     // Regenerate session ID untuk keamanan
                     session()->regenerate();
                     session()->set([
-                        'nip'  => $user['nip'],
-                        'role' => $user['role'],
-                        'nama' => $user['nama'],
+                        'nip'                  => $user['nip'],
+                        'role'                 => $user['role'],
+                        'nama'                 => $user['nama'],
+                        'must_change_password' => $mustChangePassword,
                     ]);
+
+                    if ($mustChangePassword) {
+                        return redirect()->to('/user/edit-password/' . urlencode((string) $user['nip']))
+                            ->with('warning_password_default', 'Anda login menggunakan password default (NIP). Silakan masukkan password baru terlebih dahulu.');
+                    }
 
                     return $this->redirectByRole($user['role']);
                 } else {

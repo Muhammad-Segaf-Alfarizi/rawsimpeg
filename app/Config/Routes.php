@@ -31,6 +31,7 @@ $routes->post('/pegawai/upload-sk/(:segment)',     'Pegawai::uploadSk/$1', ['fil
 $routes->get('/user/tambah',                    'User::tambah',             ['filter' => 'role:super_admin']);
 $routes->post('/user/tambah',                   'User::simpan',             ['filter' => 'role:super_admin']);
 $routes->post('/user/hash-all',                 'User::hashAll',            ['filter' => 'role:super_admin']);
+$routes->post('/user/reset-all-nip',            'User::resetAllToNip',      ['filter' => 'role:super_admin']);
 $routes->get('/user/edit-password/(:segment)',  'User::editPassword/$1',    ['filter' => 'auth']);
 $routes->post('/user/edit-password/(:segment)', 'User::updatePassword/$1',  ['filter' => 'auth']);
 
