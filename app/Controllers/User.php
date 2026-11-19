@@ -101,18 +101,19 @@ class User extends BaseController
             return redirect()->to('/dashboard/super-admin')->with('error', 'Akun user tidak ditemukan.');
         }
 
-        $isSuper      = $sessionRole === 'super_admin';
-        $isOwnAccount = ($nip === $sessionNip);
-        $mustChange   = $isOwnAccount && ((bool) session()->get('must_change_password') || $this->userModel->isDefaultPassword($user));
-        $newPassword  = (string) $this->request->getPost('password');
+        $isSuper            = $sessionRole === 'super_admin';
+        $isOwnAccount       = ($nip === $sessionNip);
+        $mustChange         = $isOwnAccount && ((bool) session()->get('must_change_password') || $this->userModel->isDefaultPassword($user));
+        $canEditRoleAndName = ($isSuper && ! $mustChange);
+        $newPassword        = (string) $this->request->getPost('password');
 
         $rules = [];
-        if ($isSuper) {
+        if ($canEditRoleAndName) {
             $rules['nama'] = 'required';
             $rules['role'] = 'required|in_list[super_admin,admin,kepala,pegawai]';
         }
 
-        if (! $isSuper || $mustChange) {
+        if (! $canEditRoleAndName) {
             $rules['password']         = 'required|min_length[6]';
             $rules['password_confirm'] = 'required|matches[password]';
         } elseif ($newPassword !== '') {
@@ -151,7 +152,7 @@ class User extends BaseController
         }
 
         $updateData = [];
-        if ($isSuper) {
+        if ($canEditRoleAndName) {
             $updateData['nama'] = trim((string) $this->request->getPost('nama'));
             $updateData['role'] = (string) $this->request->getPost('role');
         }

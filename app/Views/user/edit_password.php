@@ -2,13 +2,14 @@
 <?php $this->section('content') ?>
 
 <?php
-$isHashed       = $is_hashed ?? false;
-$isSuper        = $is_super ?? (session()->get('role') === 'super_admin');
-$mustChange     = $must_change ?? (bool) session()->get('must_change_password');
-$showPopupAlert = $show_popup_alert ?? false;
-$alertMessage   = $alert_message ?? '';
-$pwdRequired    = (! $isSuper || $mustChange);
-$pwdHash        = (string) ($user['password'] ?? '');
+$isHashed           = $is_hashed ?? false;
+$isSuper            = $is_super ?? (session()->get('role') === 'super_admin');
+$mustChange         = $must_change ?? (bool) session()->get('must_change_password');
+$canEditRoleAndName = ($isSuper && ! $mustChange);
+$showPopupAlert     = $show_popup_alert ?? false;
+$alertMessage       = $alert_message ?? '';
+$pwdRequired        = (! $canEditRoleAndName);
+$pwdHash            = (string) ($user['password'] ?? '');
 ?>
 
 <div class="card-dark" style="max-width:580px;margin:0 auto;">
@@ -57,12 +58,18 @@ $pwdHash        = (string) ($user['password'] ?? '');
         <form method="POST" action="<?= base_url('user/edit-password/' . urlencode($user['nip'] ?? '')) ?>">
             <?= csrf_field() ?>
 
+            <?php if ($mustChange): ?>
+            <div class="form-group">
+                <label class="form-label-dark">NIP</label>
+                <input type="text" class="form-control-dark" value="<?= esc($user['nip'] ?? '') ?>" readonly style="opacity:0.75;cursor:not-allowed;">
+            </div>
+            <?php else: ?>
             <div class="grid grid-2" style="margin-bottom:4px;">
                 <div class="form-group">
                     <label class="form-label-dark">NIP</label>
                     <input type="text" class="form-control-dark" value="<?= esc($user['nip'] ?? '') ?>" readonly style="opacity:0.75;cursor:not-allowed;">
                 </div>
-                <?php if ($isSuper): ?>
+                <?php if ($canEditRoleAndName): ?>
                 <div class="form-group">
                     <label class="form-label-dark">Role *</label>
                     <select name="role" class="form-control-dark" required>
@@ -80,11 +87,12 @@ $pwdHash        = (string) ($user['password'] ?? '');
                 <?php endif; ?>
             </div>
 
-            <?php if ($isSuper): ?>
+            <?php if ($canEditRoleAndName): ?>
             <div class="form-group">
                 <label class="form-label-dark">Nama Lengkap *</label>
                 <input type="text" name="nama" class="form-control-dark" value="<?= esc($user['nama'] ?? '') ?>" required>
             </div>
+            <?php endif; ?>
             <?php endif; ?>
 
             <div class="grid grid-2">

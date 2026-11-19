@@ -108,7 +108,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
     <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
 
         <!-- Data Pokok -->
-        <!-- <div class="card-dark">
+        <div class="card-dark">
             <div class="card-header-dark"><h6><i class="fas fa-user header-icon"></i> Data Pokok Pegawai</h6></div>
             <div class="card-body-dark">
                 <div class="info-row"><span class="info-label">Status Pegawai</span><span class="info-value"><?= esc($data['status_pegawai'] ?? '-') ?></span></div>
@@ -123,7 +123,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
                 <div class="info-row"><span class="info-label">SK KGB Terakhir</span><span class="info-value"><?= $kgb['terakhir'] ?></span></div>
                 <div class="info-row"><span class="info-label">SK KGB Berikutnya</span><span class="info-value" style="color:var(--warning);"><?= $kgb['berikutnya'] ?></span></div>
             </div>
-        </div> -->
+        </div>
 
         <!-- Dokumen SK -->
         <div class="card-dark">
@@ -141,7 +141,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
                 $skList = [
                     'sk_cpns'             => $isPppk ? 'SMPT Terakhir' : 'SK CPNS',
                     'sk_pns'              => $isPppk ? 'SK PPPK' : 'SK PNS',
-                    'sk_pak'              => $isPppk ? 'Dokumen Kontrak Terakhir' : 'SK PAK',
+                    'sk_pak'              => $isPppk ? 'Dokumen Kontrak Terakhir' : 'Dokumen Penetapan Angka Kredit',
                     'sk_tukin'            => $isPppk ? 'SK TUKIN (Opsional)' : 'SK TUKIN',
                     'sk_jabatan_terakhir' => 'SK Jabatan Terakhir',
                     'skp_terakhir'        => 'SKP Terakhir',
@@ -152,7 +152,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
                     foreach ($skList as $k => $v) {
                         $skListNew[$k] = $v;
                         if ($k === 'sk_tukin') {
-                            $skListNew['sk_kgb'] = 'SK KGB Terakhir';
+                            $skListNew['sk_kgb'] = 'SK Kenaikan Gaji Berkala Terakhir';
                         }
                     }
                     $skList = $skListNew;
