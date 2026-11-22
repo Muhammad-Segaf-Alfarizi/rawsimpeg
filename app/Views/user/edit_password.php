@@ -5,7 +5,8 @@
 $isHashed           = $is_hashed ?? false;
 $isSuper            = $is_super ?? (session()->get('role') === 'super_admin');
 $mustChange         = $must_change ?? (bool) session()->get('must_change_password');
-$canEditRoleAndName = ($isSuper && ! $mustChange);
+$isOwnAccount       = $is_own_account ?? ((string) session()->get('nip') === (string) ($user['nip'] ?? ''));
+$canEditRoleAndName = $can_manage_user ?? ($isSuper && ! $isOwnAccount && ! $mustChange);
 $showPopupAlert     = $show_popup_alert ?? false;
 $alertMessage       = $alert_message ?? '';
 $pwdRequired        = (! $canEditRoleAndName);
@@ -14,7 +15,7 @@ $pwdHash            = (string) ($user['password'] ?? '');
 
 <div class="card-dark" style="max-width:580px;margin:0 auto;">
     <div class="card-header-dark">
-        <h5><i class="fas fa-key header-icon"></i> <?= $mustChange ? 'Buat Password Baru' : ($isSuper ? 'Edit Akun &amp; Password' : 'Ubah Password') ?> &mdash; <?= esc($user['nama'] ?? '') ?></h5>
+        <h5><i class="fas fa-key header-icon"></i> <?= $mustChange ? 'Buat Password Baru' : ($canEditRoleAndName ? 'Edit Akun &amp; Password' : 'Ubah Password') ?> &mdash; <?= esc($user['nama'] ?? '') ?></h5>
         <?php if ($isHashed): ?>
             <span class="badge-custom badge-success"><i class="fas fa-lock"></i> Ter-enkripsi (Bcrypt)</span>
         <?php else: ?>
@@ -58,7 +59,7 @@ $pwdHash            = (string) ($user['password'] ?? '');
         <form method="POST" action="<?= base_url('user/edit-password/' . urlencode($user['nip'] ?? '')) ?>">
             <?= csrf_field() ?>
 
-            <?php if ($mustChange): ?>
+            <?php if (! $canEditRoleAndName): ?>
             <div class="form-group">
                 <label class="form-label-dark">NIP</label>
                 <input type="text" class="form-control-dark" value="<?= esc($user['nip'] ?? '') ?>" readonly style="opacity:0.75;cursor:not-allowed;">
@@ -69,7 +70,6 @@ $pwdHash            = (string) ($user['password'] ?? '');
                     <label class="form-label-dark">NIP</label>
                     <input type="text" class="form-control-dark" value="<?= esc($user['nip'] ?? '') ?>" readonly style="opacity:0.75;cursor:not-allowed;">
                 </div>
-                <?php if ($canEditRoleAndName): ?>
                 <div class="form-group">
                     <label class="form-label-dark">Role *</label>
                     <select name="role" class="form-control-dark" required>
@@ -79,20 +79,12 @@ $pwdHash            = (string) ($user['password'] ?? '');
                         <option value="pegawai"     <?= ($user['role'] ?? '') === 'pegawai'     ? 'selected' : '' ?>>Pegawai</option>
                     </select>
                 </div>
-                <?php else: ?>
-                <div class="form-group">
-                    <label class="form-label-dark">Role</label>
-                    <input type="text" class="form-control-dark" value="<?= esc(ucwords(str_replace('_', ' ', $user['role'] ?? 'pegawai'))) ?>" readonly style="opacity:0.75;cursor:not-allowed;">
-                </div>
-                <?php endif; ?>
             </div>
 
-            <?php if ($canEditRoleAndName): ?>
             <div class="form-group">
                 <label class="form-label-dark">Nama Lengkap *</label>
                 <input type="text" name="nama" class="form-control-dark" value="<?= esc($user['nama'] ?? '') ?>" required>
             </div>
-            <?php endif; ?>
             <?php endif; ?>
 
             <div class="grid grid-2">
@@ -129,8 +121,13 @@ $pwdHash            = (string) ($user['password'] ?? '');
 
             <hr class="divider">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-                <div style="display:flex;gap:10px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button type="submit" class="btn-primary-dark"><i class="fas fa-save"></i> Simpan Password</button>
+                    <?php if ($canEditRoleAndName): ?>
+                    <button type="submit" name="reset_to_nip" value="1" class="btn-warning-dark" formnovalidate onclick="return confirm('Reset password akun ini kembali menjadi sama dengan NIP agar user wajib membuat password baru saat login berikutnya?');">
+                        <i class="fas fa-undo"></i> Reset Password = NIP
+                    </button>
+                    <?php endif; ?>
                     <?php if (! $mustChange): ?>
                     <a href="<?= base_url('pegawai/profil/' . urlencode($user['nip'] ?? '')) ?>" class="btn-back">Batal</a>
                     <?php endif; ?>

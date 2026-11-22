@@ -31,7 +31,25 @@ class User extends BaseController
             'password' => 'required|min_length[6]',
         ];
 
-        if (! $this->validate($rules)) {
+        $messages = [
+            'nip' => [
+                'required'  => 'NIP wajib diisi.',
+                'is_unique' => 'NIP tersebut sudah terdaftar sebagai akun user.',
+            ],
+            'nama' => [
+                'required' => 'Nama lengkap wajib diisi.',
+            ],
+            'role' => [
+                'required' => 'Role wajib dipilih.',
+                'in_list'  => 'Pilihan role tidak valid.',
+            ],
+            'password' => [
+                'required'   => 'Password wajib diisi.',
+                'min_length' => 'Password minimal harus 6 karakter.',
+            ],
+        ];
+
+        if (! $this->validate($rules, $messages)) {
             return view('user/tambah', [
                 'errors'     => $this->validator->getErrors(),
                 'page_title' => 'Tambah Akun User',
@@ -69,18 +87,21 @@ class User extends BaseController
 
         $isOwnAccount = ($nip === $sessionNip);
         $mustChange   = $isOwnAccount && ((bool) session()->get('must_change_password') || $this->userModel->isDefaultPassword($user));
+        $canManageUser = ($sessionRole === 'super_admin' && ! $isOwnAccount && ! $mustChange);
         $flashWarn    = (string) (session()->getFlashdata('warning_password_default') ?? '');
 
         return view('user/edit_password', [
             'user'             => $user,
             'is_hashed'        => $this->userModel->isHashed((string) ($user['password'] ?? '')),
             'is_super'         => $sessionRole === 'super_admin',
+            'is_own_account'   => $isOwnAccount,
+            'can_manage_user'  => $canManageUser,
             'must_change'      => $mustChange,
             'show_popup_alert' => ($flashWarn !== '' || $mustChange),
             'alert_message'    => $flashWarn !== ''
                 ? $flashWarn
                 : ($mustChange ? 'Password akun Anda saat ini masih sama dengan NIP. Silakan masukkan password baru terlebih dahulu.' : ''),
-            'page_title'       => $mustChange ? 'Buat Password Baru' : 'Manajemen Akun & Hashing Password',
+            'page_title'       => $mustChange ? 'Buat Password Baru' : ($canManageUser ? 'Manajemen Akun & Hashing Password' : 'Ubah Password'),
             'title_icon'       => 'fas fa-key',
             'back_url'         => $mustChange ? null : 'pegawai/profil/' . urlencode($nip),
         ]);
@@ -104,8 +125,9 @@ class User extends BaseController
         $isSuper            = $sessionRole === 'super_admin';
         $isOwnAccount       = ($nip === $sessionNip);
         $mustChange         = $isOwnAccount && ((bool) session()->get('must_change_password') || $this->userModel->isDefaultPassword($user));
-        $canEditRoleAndName = ($isSuper && ! $mustChange);
-        $newPassword        = (string) $this->request->getPost('password');
+        $canEditRoleAndName = ($isSuper && ! $isOwnAccount && ! $mustChange);
+        $resetToNip         = ($canEditRoleAndName && $this->request->getPost('reset_to_nip') === '1');
+        $newPassword        = $resetToNip ? trim($nip) : (string) $this->request->getPost('password');
 
         $rules = [];
         if ($canEditRoleAndName) {
@@ -116,36 +138,61 @@ class User extends BaseController
         if (! $canEditRoleAndName) {
             $rules['password']         = 'required|min_length[6]';
             $rules['password_confirm'] = 'required|matches[password]';
-        } elseif ($newPassword !== '') {
+        } elseif (! $resetToNip && $newPassword !== '' && trim($newPassword) !== trim($nip)) {
             $rules['password']         = 'min_length[6]';
+            $rules['password_confirm'] = 'matches[password]';
+        } elseif (! $resetToNip && $newPassword !== '') {
             $rules['password_confirm'] = 'matches[password]';
         }
 
-        if (! empty($rules) && ! $this->validate($rules)) {
+        $messages = [
+            'nama' => [
+                'required' => 'Nama lengkap wajib diisi.',
+            ],
+            'role' => [
+                'required' => 'Role wajib dipilih.',
+                'in_list'  => 'Pilihan role tidak valid.',
+            ],
+            'password' => [
+                'required'   => 'Password baru wajib diisi.',
+                'min_length' => 'Password baru minimal harus 6 karakter.',
+            ],
+            'password_confirm' => [
+                'required' => 'Konfirmasi password wajib diisi.',
+                'matches'  => 'Konfirmasi password tidak cocok dengan password baru.',
+            ],
+        ];
+
+        if (! empty($rules) && ! $this->validate($rules, $messages)) {
             return view('user/edit_password', [
                 'user'             => $user,
                 'is_hashed'        => $this->userModel->isHashed((string) ($user['password'] ?? '')),
                 'is_super'         => $isSuper,
+                'is_own_account'   => $isOwnAccount,
+                'can_manage_user'  => $canEditRoleAndName,
                 'must_change'      => $mustChange,
                 'show_popup_alert' => false,
                 'alert_message'    => $mustChange ? 'Password akun Anda saat ini masih sama dengan NIP. Silakan masukkan password baru terlebih dahulu.' : '',
                 'errors'           => $this->validator->getErrors(),
-                'page_title'       => $mustChange ? 'Buat Password Baru' : 'Manajemen Akun & Hashing Password',
+                'page_title'       => $mustChange ? 'Buat Password Baru' : ($canEditRoleAndName ? 'Manajemen Akun & Hashing Password' : 'Ubah Password'),
                 'title_icon'       => 'fas fa-key',
                 'back_url'         => $mustChange ? null : 'pegawai/profil/' . urlencode($nip),
             ]);
         }
 
-        if ($newPassword !== '' && trim($newPassword) === trim($nip)) {
+        // Larang password = NIP saat user mengganti password miliknya sendiri (atau saat wajib ganti password awal)
+        if (($mustChange || ! $canEditRoleAndName) && $newPassword !== '' && trim($newPassword) === trim($nip)) {
             return view('user/edit_password', [
                 'user'             => $user,
                 'is_hashed'        => $this->userModel->isHashed((string) ($user['password'] ?? '')),
                 'is_super'         => $isSuper,
+                'is_own_account'   => $isOwnAccount,
+                'can_manage_user'  => $canEditRoleAndName,
                 'must_change'      => $mustChange,
                 'show_popup_alert' => true,
                 'alert_message'    => 'Password baru tidak boleh sama dengan NIP. Silakan buat password baru yang berbeda.',
                 'errors'           => ['password' => 'Password baru tidak boleh sama dengan NIP. Silakan buat password baru yang berbeda.'],
-                'page_title'       => $mustChange ? 'Buat Password Baru' : 'Manajemen Akun & Hashing Password',
+                'page_title'       => $mustChange ? 'Buat Password Baru' : ($canEditRoleAndName ? 'Manajemen Akun & Hashing Password' : 'Ubah Password'),
                 'title_icon'       => 'fas fa-key',
                 'back_url'         => $mustChange ? null : 'pegawai/profil/' . urlencode($nip),
             ]);

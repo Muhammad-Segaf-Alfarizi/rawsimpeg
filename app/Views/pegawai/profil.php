@@ -96,7 +96,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
             <?php endif; ?>
             <?php if ($canEditUser): ?>
             <a href="<?= base_url('user/edit-password/' . urlencode($nip)) ?>" class="btn-warning-dark">
-                <i class="fas fa-<?= $isSuperAdmin ? 'user-edit' : 'key' ?>"></i> <?= $isSuperAdmin ? 'Edit User & Password' : 'Ubah Password' ?>
+                <i class="fas fa-<?= ($isSuperAdmin && ! $isOwnProfile) ? 'user-edit' : 'key' ?>"></i> <?= ($isSuperAdmin && ! $isOwnProfile) ? 'Edit User & Password' : 'Ubah Password' ?>
             </a>
             <?php endif; ?>
         </div>
