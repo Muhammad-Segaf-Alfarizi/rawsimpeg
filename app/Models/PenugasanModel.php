@@ -78,7 +78,7 @@ class PenugasanModel extends Model
             FROM pegawai p
             LEFT JOIN penugasan_sdm ps ON p.nip = ps.nip
             GROUP BY p.nip, p.nama, p.no_urut_rekap, p.jabatan, p.id
-            ORDER BY p.no_urut_rekap ASC, p.id ASC
+            ORDER BY COALESCE(p.no_urut_rekap, 9999) ASC, p.id ASC
         ");
 
         return $query->getResultArray();
@@ -120,10 +120,10 @@ class PenugasanModel extends Model
     {
         $db = \Config\Database::connect();
 
-        // 1. Ambil 56 pegawai urut no_urut_rekap
+        // 1. Ambil seluruh pegawai urut no_urut_rekap
         $pegBuilder = $db->table('pegawai')
             ->select('no_urut_rekap, nip, nama, jabatan')
-            ->orderBy('no_urut_rekap', 'ASC')
+            ->orderBy('COALESCE(no_urut_rekap, 9999)', 'ASC', false)
             ->orderBy('id', 'ASC');
 
         if (!empty($nipFilter)) {

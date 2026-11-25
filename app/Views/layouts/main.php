@@ -26,6 +26,7 @@
 
     <style>
         :root {
+            color-scheme: dark;
             --bg-primary:    #0f1117;
             --bg-secondary:  #1a1d27;
             --bg-card:       #1e2130;
@@ -52,6 +53,7 @@
         }
 
         [data-theme="light"] {
+            color-scheme: light;
             --bg-primary:    #f1f5f9;
             --bg-secondary:  #ffffff;
             --bg-card:       #ffffff;
@@ -171,7 +173,8 @@
         .form-control-dark:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); background: rgba(255,255,255,0.06); }
         [data-theme="light"] .form-control-dark:focus { background: #ffffff; border-color: var(--accent); }
         .form-control-dark::placeholder { color: var(--text-muted); }
-        .form-control-dark option { background: var(--bg-card); color: var(--text-primary); }
+        .form-control-dark option { background-color: #1e2130; color: #f1f5f9; }
+        [data-theme="light"] .form-control-dark option { background-color: #ffffff; color: #0f172a; }
 
         /* BUTTONS */
         .btn-primary-dark { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); border: none; color: white; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: var(--transition); cursor: pointer; white-space: nowrap; }
@@ -235,10 +238,47 @@
         .info-row .info-value { flex: 1; font-size: 13px; color: var(--text-primary); }
 
         /* DATATABLES */
-        .dataTables_wrapper .dataTables_filter input,
-        .dataTables_wrapper .dataTables_length select { background: rgba(255,255,255,0.05) !important; border: 1px solid var(--border) !important; color: var(--text-primary) !important; border-radius: 6px !important; padding: 5px 10px !important; outline: none !important; }
+        .dataTables_wrapper .dataTables_filter input {
+            background-color: var(--bg-secondary) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text-primary) !important;
+            border-radius: 6px !important;
+            padding: 5px 10px !important;
+            outline: none !important;
+        }
+        .dataTables_wrapper .dataTables_length select {
+            background-color: var(--bg-secondary) !important;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 8px center !important;
+            background-size: 11px 11px !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text-primary) !important;
+            border-radius: 6px !important;
+            padding: 5px 28px 5px 10px !important;
+            outline: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            cursor: pointer;
+        }
+        .dataTables_wrapper .dataTables_length select option {
+            background-color: #1e2130 !important;
+            color: #f1f5f9 !important;
+        }
         [data-theme="light"] .dataTables_wrapper .dataTables_filter input,
-        [data-theme="light"] .dataTables_wrapper .dataTables_length select { background: #f8fafc !important; border-color: #cbd5e1 !important; color: var(--text-primary) !important; }
+        [data-theme="light"] .dataTables_wrapper .dataTables_length select {
+            background-color: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+        [data-theme="light"] .dataTables_wrapper .dataTables_length select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+        }
+        [data-theme="light"] .dataTables_wrapper .dataTables_length select option {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
         .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_length label, .dataTables_wrapper .dataTables_filter label { color: var(--text-muted) !important; font-size: 13px; }
         .dt-bottom { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; flex-wrap:wrap; gap:8px; }
         .dt-top    { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; flex-wrap:wrap; gap:8px; }

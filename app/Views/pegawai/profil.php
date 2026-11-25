@@ -298,7 +298,7 @@ function docLink($url, $label = 'Lihat Dokumen') {
                         </thead>
                         <tbody>
                         <?php foreach ($matriksAll as $idx => $r):
-                            $no = (int) ($r['no_urut_rekap'] ?: $idx + 1);
+                            $no = $idx + 1;
                             $isSelf = ((string)($r['nip'] ?? '') === (string)($nip ?? ''));
                         ?>
                             <tr class="row-pegawai-rekap<?= $isSelf ? ' row-self' : '' ?>" 

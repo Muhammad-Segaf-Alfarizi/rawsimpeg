@@ -124,7 +124,7 @@ $cell = static fn ($v, bool $zero = false): string => ((int) $v === 0) ? ($zero 
                 </thead>
                 <tbody>
                 <?php foreach ($matriks as $idx => $r):
-                    $no = (int) ($r['no_urut_rekap'] ?: $idx + 1);
+                    $no = $idx + 1;
                 ?>
                     <tr class="row-pegawai-rekap" data-search="<?= esc(strtolower($r['nama_pegawai'] . ' ' . $r['nip'])) ?>">
                         <td class="s-no"><?= $no ?></td>

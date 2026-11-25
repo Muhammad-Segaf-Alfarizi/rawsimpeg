@@ -19,6 +19,11 @@ foreach ($kegiatanList as $k) {
     ];
 }
 
+$urutByNip = [];
+foreach ($pegawaiAll as $idx => $p) {
+    $urutByNip[$p['nip']] = $idx + 1;
+}
+
 $rows = [];
 foreach ($jadwalData['pegawai'] ?? [] as $i => $peg) {
     $tasks = [];
@@ -39,7 +44,7 @@ foreach ($jadwalData['pegawai'] ?? [] as $i => $peg) {
         }
     }
     $rows[] = [
-        'no'    => (int) ($peg['no_urut_rekap'] ?: $i + 1),
+        'no'    => $urutByNip[$peg['nip']] ?? ($i + 1),
         'nip'   => $peg['nip'],
         'nama'  => $peg['nama'],
         'total' => (int) ($totalKegByNip[$peg['nip']] ?? 0),
@@ -109,8 +114,8 @@ $qs = static fn (array $over): string => base_url('jadwal-penugasan?' . http_bui
                 <label class="form-label-dark">Pegawai</label>
                 <select name="nip" class="form-control-dark sm" onchange="this.form.submit()">
                     <option value="">Semua pegawai (<?= count($pegawaiAll) ?>)</option>
-                    <?php foreach ($pegawaiAll as $p): ?>
-                        <option value="<?= esc($p['nip']) ?>" <?= $nipFilter === $p['nip'] ? 'selected' : '' ?>>#<?= (int) $p['no_urut_rekap'] ?> — <?= esc($p['nama']) ?></option>
+                    <?php foreach ($pegawaiAll as $idx => $p): ?>
+                        <option value="<?= esc($p['nip']) ?>" <?= $nipFilter === $p['nip'] ? 'selected' : '' ?>>#<?= $urutByNip[$p['nip']] ?? ($idx + 1) ?> — <?= esc($p['nama']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -272,8 +277,8 @@ $qs = static fn (array $over): string => base_url('jadwal-penugasan?' . http_bui
                                 </div>
                                 <select name="nip" id="cutiSelectNip" class="form-control-dark sm" required>
                                     <option value="">— Pilih pegawai —</option>
-                                    <?php foreach ($pegawaiAll as $p): ?>
-                                        <option value="<?= esc($p['nip']) ?>" data-nama="<?= esc(strtolower($p['nama'])) ?>">#<?= (int) $p['no_urut_rekap'] ?> — <?= esc($p['nama']) ?></option>
+                                    <?php foreach ($pegawaiAll as $idx => $p): ?>
+                                        <option value="<?= esc($p['nip']) ?>" data-nama="<?= esc(strtolower($p['nama'])) ?>">#<?= $urutByNip[$p['nip']] ?? ($idx + 1) ?> — <?= esc($p['nama']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>

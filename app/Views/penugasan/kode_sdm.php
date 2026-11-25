@@ -396,8 +396,8 @@ $kegForm = static function (string $p, array $timOpts): string {
                                 </div>
                                 <select name="nip" id="sdmSelectNip" class="form-control-dark sm" required>
                                     <option value="">— Pilih pegawai —</option>
-                                    <?php foreach ($pegawaiList as $p):
-                                        $optLabel = '#' . (int) $p['no_urut_rekap'] . ' — ' . $p['nama'];
+                                    <?php foreach ($pegawaiList as $idx => $p):
+                                        $optLabel = '#' . ($idx + 1) . ' — ' . $p['nama'];
                                     ?>
                                         <option value="<?= esc($p['nip']) ?>" data-nama="<?= esc(strtolower($p['nama'])) ?>" data-label="<?= esc($optLabel) ?>"><?= esc($optLabel) ?></option>
                                     <?php endforeach; ?>

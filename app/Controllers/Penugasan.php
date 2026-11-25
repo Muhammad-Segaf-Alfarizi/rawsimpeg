@@ -29,7 +29,7 @@ class Penugasan extends BaseController
     {
         $role         = (string) session()->get('role');
         $kegiatanList = $this->kegiatanModel->getAllWithPenugasan();
-        $pegawaiList  = $this->pegawaiModel->orderBy('no_urut_rekap', 'ASC')->orderBy('id', 'ASC')->findAll();
+        $pegawaiList  = $this->pegawaiModel->orderBy('COALESCE(no_urut_rekap, 9999)', 'ASC', false)->orderBy('id', 'ASC')->findAll();
         $cutiList     = $this->riwayatModel->getDaftarCuti();
 
         return view('penugasan/kode_sdm', [
@@ -62,7 +62,7 @@ class Penugasan extends BaseController
 
         $jadwalData   = $this->penugasanModel->getJadwalMatriks($bulanFilter, $nipFilter ?: null, $kodeFilter ?: null);
         $kegiatanList = $this->kegiatanModel->orderBy('CAST(kode_kegiatan AS UNSIGNED)', 'ASC')->findAll();
-        $pegawaiAll   = $this->pegawaiModel->orderBy('no_urut_rekap', 'ASC')->orderBy('id', 'ASC')->findAll();
+        $pegawaiAll   = $this->pegawaiModel->orderBy('COALESCE(no_urut_rekap, 9999)', 'ASC', false)->orderBy('id', 'ASC')->findAll();
         $cutiList     = $this->riwayatModel->getDaftarCuti();
 
         return view('penugasan/jadwal', [
