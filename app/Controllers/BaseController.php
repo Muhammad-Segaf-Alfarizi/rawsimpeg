@@ -137,14 +137,15 @@ abstract class BaseController extends Controller
     }
 
     /**
-     * Validasi dan upload lampiran pegawai (ABK/TNA) ke folder Nama Pegawai -> Tahun Berjalan di GDrive.
+     * Validasi dan upload lampiran pegawai (ABK/TNA/Diklat) ke folder Nama Pegawai -> Tahun di GDrive.
      */
     protected function uploadEmployeeAttachment(
         PegawaiModel $pegawaiModel,
         string $nip,
         string $inputName,
         string $fileTag,
-        ?string $existingUrl = null
+        ?string $existingUrl = null,
+        ?string $tahun = null
     ): ?string {
         $file = $this->request->getFile($inputName);
         if (! $file || ! $file->isValid() || $file->hasMoved()) {
@@ -159,7 +160,7 @@ abstract class BaseController extends Controller
 
         try {
             $gdrive         = $this->createGDrive();
-            $targetFolderId = $gdrive->getOrCreateEmployeeYearFolder($namaPegawai);
+            $targetFolderId = $gdrive->getOrCreateEmployeeYearFolder($namaPegawai, null, $tahun);
             $fileName       = $nip . '_' . $fileTag . '_' . time() . '.' . $file->getClientExtension();
 
             $url = $gdrive->upload(

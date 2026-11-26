@@ -36,12 +36,13 @@ $routes->get('/user/edit-password/(:segment)',  'User::editPassword/$1',    ['fi
 $routes->post('/user/edit-password/(:segment)', 'User::updatePassword/$1',  ['filter' => 'auth']);
 
 // ─── DIKLAT ───────────────────────────────────────────────────────────────────
-$routes->get('/diklat/(:segment)',               'Diklat::index/$1',     ['filter' => 'auth']);
-$routes->get('/diklat/tambah/(:segment)',         'Diklat::tambah/$1',    ['filter' => 'role:super_admin,admin,kepala,pegawai']);
-$routes->post('/diklat/simpan/(:segment)',        'Diklat::simpan/$1',    ['filter' => 'role:super_admin,admin,kepala,pegawai']);
-$routes->get('/diklat/edit/(:segment)/(:num)',    'Diklat::edit/$1/$2',   ['filter' => 'role:super_admin,admin,kepala,pegawai']);
-$routes->post('/diklat/update/(:segment)/(:num)', 'Diklat::update/$1/$2', ['filter' => 'role:super_admin,admin,kepala,pegawai']);
-$routes->get('/diklat/hapus/(:segment)/(:num)',   'Diklat::hapus/$1/$2',  ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/diklat/(:segment)',                        'Diklat::index/$1',            ['filter' => 'auth']);
+$routes->get('/diklat/tambah/(:segment)',                  'Diklat::tambah/$1',           ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/diklat/simpan/(:segment)',                 'Diklat::simpan/$1',           ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/diklat/edit/(:segment)/(:num)',             'Diklat::edit/$1/$2',          ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/diklat/update/(:segment)/(:num)',          'Diklat::update/$1/$2',        ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->post('/diklat/upload-sertifikat/(:segment)/(:num)', 'Diklat::uploadSertifikat/$1/$2', ['filter' => 'role:super_admin,admin,kepala,pegawai']);
+$routes->get('/diklat/hapus/(:segment)/(:num)',            'Diklat::hapus/$1/$2',         ['filter' => 'role:super_admin,admin,kepala,pegawai']);
 
 // ─── PENGHARGAAN ──────────────────────────────────────────────────────────────
 $routes->get('/penghargaan/(:segment)',               'Penghargaan::index/$1',     ['filter' => 'auth']);
