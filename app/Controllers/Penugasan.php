@@ -60,6 +60,7 @@ class Penugasan extends BaseController
             ? (int) $bulanParam
             : null;
 
+        $this->kegiatanModel->syncAutoDoneStatuses();
         $jadwalData   = $this->penugasanModel->getJadwalMatriks($bulanFilter, $nipFilter ?: null, $kodeFilter ?: null);
         $kegiatanList = $this->kegiatanModel->orderBy('CAST(kode_kegiatan AS UNSIGNED)', 'ASC')->findAll();
         $pegawaiAll   = $this->pegawaiModel->orderBy('COALESCE(no_urut_rekap, 9999)', 'ASC', false)->orderBy('id', 'ASC')->findAll();
@@ -88,6 +89,7 @@ class Penugasan extends BaseController
     public function rekap()
     {
         $role         = (string) session()->get('role');
+        $this->kegiatanModel->syncAutoDoneStatuses();
         $matriks      = $this->penugasanModel->getMatriksRekap();
         $kegiatanList = $this->kegiatanModel->orderBy('CAST(kode_kegiatan AS UNSIGNED)', 'ASC')->findAll();
         $cutiList     = $this->riwayatModel->getDaftarCuti();
@@ -119,6 +121,14 @@ class Penugasan extends BaseController
         $tempat      = trim((string) $this->request->getPost('tempat_lokus'));
         $status      = trim((string) $this->request->getPost('status_kegiatan')) ?: 'TERJADWAL';
         $catatanKet  = trim((string) $this->request->getPost('catatan_ket')) ?: $status;
+
+        $endDate = $tglSelesai ?: $tglMulai;
+        if ($endDate && $endDate !== '0000-00-00' && $endDate < date('Y-m-d')) {
+            $status = 'DONE';
+            if (in_array(strtoupper($catatanKet), ['', 'TERJADWAL', 'DARING'], true)) {
+                $catatanKet = 'DONE';
+            }
+        }
 
         if ($kode === '' || $nama === '') {
             return redirect()->back()->with('error', 'Kode Kegiatan dan Nama Kegiatan wajib diisi.');
@@ -161,6 +171,14 @@ class Penugasan extends BaseController
         $status       = trim((string) $this->request->getPost('status_kegiatan')) ?: 'TERJADWAL';
         $catatanKet   = trim((string) $this->request->getPost('catatan_ket')) ?: $status;
         $syncSdmDates = $this->request->getPost('sync_sdm_dates') !== '0';
+
+        $endDate = $tglSelesai ?: $tglMulai;
+        if ($endDate && $endDate !== '0000-00-00' && $endDate < date('Y-m-d')) {
+            $status = 'DONE';
+            if (in_array(strtoupper($catatanKet), ['', 'TERJADWAL', 'DARING'], true)) {
+                $catatanKet = 'DONE';
+            }
+        }
 
         if (!$idKegiatan || $kode === '' || $nama === '') {
             return redirect()->back()->with('error', 'Data kegiatan tidak lengkap.');

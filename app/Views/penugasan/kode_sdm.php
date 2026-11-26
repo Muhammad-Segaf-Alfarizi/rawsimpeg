@@ -120,13 +120,21 @@ $statusBadge = static function (string $st): string {
                 </thead>
                 <tbody>
                 <?php foreach ($kegiatanList as $k):
-                    $warna   = $k['warna_hex'] ?: '#E5B8B7';
-                    $grouped = $k['grouped_sdm'] ?? [];
-                    $jmlSdm  = (int) ($k['jumlah_sdm'] ?? 0);
-                    $timHex  = $timKerjaOptions[$k['tim_kerja'] ?? ''] ?? '#D9D9D9';
+                    $warna     = $k['warna_hex'] ?: '#E5B8B7';
+                    $grouped   = $k['grouped_sdm'] ?? [];
+                    $jmlSdm    = (int) ($k['jumlah_sdm'] ?? 0);
+                    $timHex    = $timKerjaOptions[$k['tim_kerja'] ?? ''] ?? '#D9D9D9';
+                    $stEfektif = $k['status_kegiatan'] ?? 'TERJADWAL';
+                    $tglAkhir  = !empty($k['tanggal_selesai']) && $k['tanggal_selesai'] !== '0000-00-00'
+                        ? $k['tanggal_selesai']
+                        : ($k['tanggal_mulai'] ?? '');
+                    if ($tglAkhir !== '' && $tglAkhir !== '0000-00-00' && $tglAkhir < date('Y-m-d')) {
+                        $stEfektif = 'DONE';
+                    }
+                    $ketTrim   = trim((string) ($k['catatan_ket'] ?? ''));
                 ?>
                     <tr class="row-kegiatan" style="--row-color:<?= esc($warna) ?>;"
-                        data-tim="<?= esc($k['tim_kerja'] ?? '') ?>" data-status="<?= esc($k['status_kegiatan']) ?>">
+                        data-tim="<?= esc($k['tim_kerja'] ?? '') ?>" data-status="<?= esc($stEfektif) ?>">
                         <td style="text-align:center;">
                             <span class="kode-badge" style="background:<?= esc($warna) ?>;"><?= esc($k['kode_kegiatan']) ?></span>
                         </td>
@@ -190,9 +198,9 @@ $statusBadge = static function (string $st): string {
                             <div class="keg-meta" style="color:var(--text-secondary);"><i class="fas fa-map-marker-alt" style="color:var(--danger);"></i> <?= esc(str_replace(' | ', "\n", $k['tempat_lokus'] ?: '-')) ?></div>
                         </td>
                         <td style="text-align:center;">
-                            <?= $statusBadge($k['status_kegiatan']) ?>
-                            <?php if (!empty($k['catatan_ket']) && $k['catatan_ket'] !== $k['status_kegiatan'] && $k['catatan_ket'] !== '-'): ?>
-                                <div class="keg-meta" style="margin-top:4px;font-size:11px;"><?= esc($k['catatan_ket']) ?></div>
+                            <?= $statusBadge($stEfektif) ?>
+                            <?php if ($ketTrim !== '' && $ketTrim !== '-' && !in_array(strtoupper($ketTrim), ['DONE', 'TERJADWAL', 'DARING'], true)): ?>
+                                <div class="keg-meta" style="margin-top:4px;font-size:11px;"><?= esc($ketTrim) ?></div>
                             <?php endif; ?>
                         </td>
                         <?php if ($canEdit):
@@ -562,6 +570,16 @@ function autoSyncRentangTeks(prefix) {
         txt = `${d1.getDate()} ${bln[d1.getMonth()]} ${d1.getFullYear()} - ${d2.getDate()} ${bln[d2.getMonth()]} ${d2.getFullYear()}`;
     }
     document.getElementById(prefix + 'Rentang').value = txt;
+
+    const stEl = document.getElementById(prefix + 'Status');
+    if (stEl) {
+        const todayStr = '<?= date('Y-m-d') ?>';
+        if (s < todayStr) {
+            stEl.value = 'DONE';
+        } else if (stEl.value === 'DONE') {
+            stEl.value = 'TERJADWAL';
+        }
+    }
 }
 
 function bukaModalEditKegiatan(k) {

@@ -23,11 +23,45 @@ class KegiatanModel extends Model
     ];
     protected $useTimestamps    = false;
 
+    private static bool $autoDoneSynced = false;
+
+    /**
+     * Otomatis ubah status_kegiatan menjadi DONE apabila tanggal pelaksanaan
+     * kegiatan sudah lewat dari hari ini (WIB / Asia/Jakarta).
+     */
+    public function syncAutoDoneStatuses(): void
+    {
+        if (self::$autoDoneSynced) {
+            return;
+        }
+        self::$autoDoneSynced = true;
+
+        $today = date('Y-m-d');
+        $db    = \Config\Database::connect();
+
+        $db->query("
+            UPDATE `kegiatan`
+            SET
+                `status_kegiatan` = 'DONE',
+                `catatan_ket` = CASE
+                    WHEN `catatan_ket` IS NULL OR UPPER(TRIM(`catatan_ket`)) IN ('', 'TERJADWAL', 'DARING')
+                    THEN 'DONE'
+                    ELSE `catatan_ket`
+                END
+            WHERE `status_kegiatan` != 'DONE'
+              AND COALESCE(
+                  NULLIF(`tanggal_selesai`, '0000-00-00'),
+                  NULLIF(`tanggal_mulai`, '0000-00-00')
+              ) < ?
+        ", [$today]);
+    }
+
     /**
      * Ambil seluruh kegiatan urut kode numerik (1 s.d. 43+) beserta rincian penugasan SDM-nya
      */
     public function getAllWithPenugasan(): array
     {
+        $this->syncAutoDoneStatuses();
         $db = \Config\Database::connect();
 
         $kegiatan = $db->table('kegiatan')
