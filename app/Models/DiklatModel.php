@@ -18,6 +18,7 @@ class DiklatModel extends Model
     protected $allowedFields = [
         'nip',
         'nama_diklat',
+        'penyelenggara',
         'tanggal_mulai',
         'tanggal_selesai',
         'tempat_pelaksanaan',
@@ -42,8 +43,11 @@ class DiklatModel extends Model
             $fields = array_map('strtolower', $db->getFieldNames($this->table));
 
             $alterations = [];
+            if (! in_array('penyelenggara', $fields, true)) {
+                $alterations[] = 'ADD COLUMN `penyelenggara` VARCHAR(255) NULL DEFAULT NULL AFTER `nama_diklat`';
+            }
             if (! in_array('tanggal_mulai', $fields, true)) {
-                $alterations[] = 'ADD COLUMN `tanggal_mulai` DATE NULL DEFAULT NULL AFTER `nama_diklat`';
+                $alterations[] = 'ADD COLUMN `tanggal_mulai` DATE NULL DEFAULT NULL AFTER `penyelenggara`';
             }
             if (! in_array('tanggal_selesai', $fields, true)) {
                 $alterations[] = 'ADD COLUMN `tanggal_selesai` DATE NULL DEFAULT NULL AFTER `tanggal_mulai`';

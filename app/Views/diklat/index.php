@@ -66,6 +66,7 @@ $badgeModelPelatihan = static function (?string $model): string {
                     <tr>
                         <th style="width:50px;">No.</th>
                         <th>Nama Diklat / Pelatihan</th>
+                        <th>Penyelenggara</th>
                         <th>Tanggal Pelatihan</th>
                         <th>Tempat Pelaksanaan</th>
                         <th style="text-align:center;">Model</th>
@@ -81,6 +82,7 @@ $badgeModelPelatihan = static function (?string $model): string {
                     <tr>
                         <td style="color:var(--text-muted);"><?= $i + 1 ?></td>
                         <td style="font-weight:600;color:var(--text-primary);"><?= esc($dk['nama_diklat']) ?></td>
+                        <td><?= ! empty($dk['penyelenggara']) ? esc($dk['penyelenggara']) : '<span style="color:var(--text-muted);">-</span>' ?></td>
                         <td style="white-space:nowrap;"><?= $fmtRentangDiklat($dk['tanggal_mulai'] ?? null, $dk['tanggal_selesai'] ?? null) ?></td>
                         <td><?= ! empty($dk['tempat_pelaksanaan']) ? esc($dk['tempat_pelaksanaan']) : '<span style="color:var(--text-muted);">-</span>' ?></td>
                         <td style="text-align:center;"><?= $badgeModelPelatihan($dk['model_pelatihan'] ?? null) ?></td>

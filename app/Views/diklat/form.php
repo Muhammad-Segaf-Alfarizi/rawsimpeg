@@ -2,14 +2,15 @@
 <?php $this->section('content') ?>
 
 <?php
-$modelOpts   = $modelOptions ?? ['Luring' => 'Luring (Tatap Muka)', 'Daring' => 'Daring (Online)', 'Blended' => 'Blended (Luring & Daring)'];
-$valNama     = old('nama_diklat', $dataEdit['nama_diklat'] ?? '');
-$valMulai    = old('tanggal_mulai', (! empty($dataEdit['tanggal_mulai']) && $dataEdit['tanggal_mulai'] !== '0000-00-00') ? $dataEdit['tanggal_mulai'] : '');
-$valSelesai  = old('tanggal_selesai', (! empty($dataEdit['tanggal_selesai']) && $dataEdit['tanggal_selesai'] !== '0000-00-00') ? $dataEdit['tanggal_selesai'] : '');
-$valTempat   = old('tempat_pelaksanaan', $dataEdit['tempat_pelaksanaan'] ?? '');
-$valModel    = old('model_pelatihan', $dataEdit['model_pelatihan'] ?? '');
-$existingUrl = $dataEdit['file_sertifikat'] ?? '';
-$actionUrl   = $aksi === 'tambah'
+$modelOpts        = $modelOptions ?? ['Luring' => 'Luring (Tatap Muka)', 'Daring' => 'Daring (Online)', 'Blended' => 'Blended (Luring & Daring)'];
+$valNama          = old('nama_diklat', $dataEdit['nama_diklat'] ?? '');
+$valPenyelenggara = old('penyelenggara', $dataEdit['penyelenggara'] ?? '');
+$valMulai         = old('tanggal_mulai', (! empty($dataEdit['tanggal_mulai']) && $dataEdit['tanggal_mulai'] !== '0000-00-00') ? $dataEdit['tanggal_mulai'] : '');
+$valSelesai       = old('tanggal_selesai', (! empty($dataEdit['tanggal_selesai']) && $dataEdit['tanggal_selesai'] !== '0000-00-00') ? $dataEdit['tanggal_selesai'] : '');
+$valTempat        = old('tempat_pelaksanaan', $dataEdit['tempat_pelaksanaan'] ?? '');
+$valModel         = old('model_pelatihan', $dataEdit['model_pelatihan'] ?? '');
+$existingUrl      = $dataEdit['file_sertifikat'] ?? '';
+$actionUrl        = $aksi === 'tambah'
     ? base_url('diklat/simpan/' . urlencode($nip))
     : base_url('diklat/update/' . urlencode($nip) . '/' . $dataEdit['id_daftar_diklat']);
 ?>
@@ -33,6 +34,13 @@ $actionUrl   = $aksi === 'tambah'
                        value="<?= esc($valNama) ?>" required autofocus>
             </div>
 
+            <div class="form-group">
+                <label class="form-label-dark">Penyelenggara <span style="color:var(--danger);">*</span></label>
+                <input type="text" name="penyelenggara" class="form-control-dark"
+                       placeholder="Contoh: Kemendikdasmen / BGTK Provinsi Lampung / LAN RI"
+                       value="<?= esc($valPenyelenggara) ?>" required>
+            </div>
+
             <div class="grid grid-2">
                 <div class="form-group">
                     <label class="form-label-dark">Tanggal Mulai Pelatihan</label>
@@ -48,7 +56,7 @@ $actionUrl   = $aksi === 'tambah'
 
             <div class="grid grid-2">
                 <div class="form-group">
-                    <label class="form-label-dark">Tempat Pelaksanaan</label>
+                    <label class="form-label-dark">Tempat Pelaksanaan <span style="color:var(--text-muted);font-weight:400;">(Opsional)</span></label>
                     <input type="text" name="tempat_pelaksanaan" class="form-control-dark"
                            placeholder="Contoh: Hotel Novotel / BBGTK / Zoom Meeting"
                            value="<?= esc($valTempat) ?>">

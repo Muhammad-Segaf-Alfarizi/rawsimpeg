@@ -72,11 +72,19 @@ class Diklat extends BaseController
         }
         $this->diklatModel->ensureSchema();
 
-        $namaDiklat = trim((string) ($this->request->getPost('nama_diklat') ?? ''));
+        $namaDiklat    = trim((string) ($this->request->getPost('nama_diklat') ?? ''));
+        $penyelenggara = trim((string) ($this->request->getPost('penyelenggara') ?? ''));
+
         if ($namaDiklat === '') {
             return redirect()->to('/diklat/tambah/' . urlencode($nip))
                 ->withInput()
                 ->with('error', 'Nama diklat / pelatihan wajib diisi.');
+        }
+
+        if ($penyelenggara === '') {
+            return redirect()->to('/diklat/tambah/' . urlencode($nip))
+                ->withInput()
+                ->with('error', 'Penyelenggara pelatihan wajib diisi.');
         }
 
         $tglMulai   = trim((string) ($this->request->getPost('tanggal_mulai') ?? '')) ?: null;
@@ -104,6 +112,7 @@ class Diklat extends BaseController
         $this->diklatModel->save([
             'nip'                => $nip,
             'nama_diklat'        => $namaDiklat,
+            'penyelenggara'      => $penyelenggara,
             'tanggal_mulai'      => $tglMulai,
             'tanggal_selesai'    => $tglSelesai,
             'tempat_pelaksanaan' => $tempat,
@@ -153,11 +162,19 @@ class Diklat extends BaseController
             return redirect()->to('/diklat/' . urlencode($nip))->with('error', 'Data diklat tidak ditemukan.');
         }
 
-        $namaDiklat = trim((string) ($this->request->getPost('nama_diklat') ?? ''));
+        $namaDiklat    = trim((string) ($this->request->getPost('nama_diklat') ?? ''));
+        $penyelenggara = trim((string) ($this->request->getPost('penyelenggara') ?? ''));
+
         if ($namaDiklat === '') {
             return redirect()->to('/diklat/edit/' . urlencode($nip) . '/' . $id)
                 ->withInput()
                 ->with('error', 'Nama diklat / pelatihan wajib diisi.');
+        }
+
+        if ($penyelenggara === '') {
+            return redirect()->to('/diklat/edit/' . urlencode($nip) . '/' . $id)
+                ->withInput()
+                ->with('error', 'Penyelenggara pelatihan wajib diisi.');
         }
 
         $tglMulai   = trim((string) ($this->request->getPost('tanggal_mulai') ?? '')) ?: null;
@@ -188,6 +205,7 @@ class Diklat extends BaseController
 
         $this->diklatModel->update($id, [
             'nama_diklat'        => $namaDiklat,
+            'penyelenggara'      => $penyelenggara,
             'tanggal_mulai'      => $tglMulai,
             'tanggal_selesai'    => $tglSelesai,
             'tempat_pelaksanaan' => $tempat,
