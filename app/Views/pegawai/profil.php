@@ -141,10 +141,10 @@ function docLink($url, $label = 'Lihat Dokumen') {
                 $skList = [
                     'sk_cpns'             => $isPppk ? 'SMPT Terakhir' : 'SK CPNS',
                     'sk_pns'              => $isPppk ? 'SK PPPK' : 'SK PNS',
-                    'sk_pak'              => $isPppk ? 'Dokumen Kontrak Terakhir' : 'Dokumen Penetapan Angka Kredit',
+                    'sk_pak'              => $isPppk ? 'Dokumen Kontrak Terakhir' : 'Dokumen Penetapan Angka Kredit Terakhir',
                     'sk_tukin'            => $isPppk ? 'SK TUKIN (Opsional)' : 'SK TUKIN',
                     'sk_jabatan_terakhir' => 'SK Jabatan Terakhir',
-                    'skp_terakhir'        => 'SKP Terakhir',
+                    'skp_terakhir'        => 'Sasaran Kinerja Pegawai Terakhir',
                 ];
                 if (! $isPppk) {
                     // SK KGB hanya untuk PNS, sisipkan setelah sk_tukin

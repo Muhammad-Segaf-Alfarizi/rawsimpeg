@@ -55,21 +55,17 @@ class PegawaiModel extends Model
             return null;
         }
 
-        // Ambil status kedinasan aktif hari ini (atau terdekat)
+        // Ambil status kedinasan aktif hari ini (WIB)
         $db = \Config\Database::connect();
         $status = $db->query("
             SELECT * FROM riwayat_status
             WHERE nip = ?
-            AND (
-                CURDATE() BETWEEN tanggal_mulai AND tanggal_selesai
-                OR (NOT EXISTS (
-                    SELECT 1 FROM riwayat_status WHERE nip = ? AND CURDATE() BETWEEN tanggal_mulai AND tanggal_selesai
-                ) AND tanggal_mulai > CURDATE())
-            )
-            ORDER BY CASE WHEN CURDATE() BETWEEN tanggal_mulai AND tanggal_selesai THEN 0
-                          ELSE DATEDIFF(tanggal_mulai, CURDATE()) END ASC
+              AND status != ''
+              AND tanggal_mulai != '0000-00-00'
+              AND ? BETWEEN tanggal_mulai AND tanggal_selesai
+            ORDER BY id DESC
             LIMIT 1
-        ", [$nip, $nip])->getRowArray();
+        ", [$nip, $today])->getRowArray();
 
         if ($status) {
             if (! empty($status['jenis_cuti'])) {
